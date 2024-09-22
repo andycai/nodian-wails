@@ -4,34 +4,25 @@
         CreateMarkdownFile,
         ReadMarkdownFile,
         SaveMarkdownFile,
-        ListMarkdownFiles,
     } from "../wailsjs/go/main/App";
     import MarkdownIt from "markdown-it";
 
+    export let selectedFile: string | null;
+
     let content = "";
-    let filename = "";
-    let files: string[] = [];
     let md = new MarkdownIt();
 
-    onMount(async () => {
-        files = await ListMarkdownFiles(".");
-    });
-
-    async function createFile() {
-        if (filename) {
-            await CreateMarkdownFile(filename, content);
-            files = await ListMarkdownFiles(".");
-        }
+    $: if (selectedFile) {
+        loadFile(selectedFile);
     }
 
     async function loadFile(file: string) {
         content = await ReadMarkdownFile(file);
-        filename = file;
     }
 
     async function saveFile() {
-        if (filename) {
-            await SaveMarkdownFile(filename, content);
+        if (selectedFile) {
+            await SaveMarkdownFile(selectedFile, content);
         }
     }
 
@@ -39,19 +30,16 @@
 </script>
 
 <div class="markdown-editor">
-    <div class="file-list">
-        <h3>Files</h3>
-        <ul>
-            {#each files as file}
-                <li on:click={() => loadFile(file)}>{file}</li>
-            {/each}
-        </ul>
-        <input bind:value={filename} placeholder="New file name" />
-        <button on:click={createFile}>Create</button>
-    </div>
     <div class="editor">
-        <textarea bind:value={content}></textarea>
-        <button on:click={saveFile}>Save</button>
+        <textarea
+            bind:value={content}
+            class="w-full h-64 p-2 border rounded dark:bg-gray-800 dark:text-white"
+        ></textarea>
+        <button
+            on:click={saveFile}
+            class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-800"
+            >Save</button
+        >
     </div>
     <div class="preview">
         {@html renderedContent}
@@ -64,21 +52,30 @@
         height: 100%;
     }
 
-    .file-list {
-        width: 200px;
-        border-right: 1px solid #ccc;
-        padding: 1rem;
-    }
-
     .editor,
     .preview {
         flex: 1;
         padding: 1rem;
     }
 
-    textarea {
-        width: 100%;
-        height: 100%;
-        resize: none;
+    .preview :global(h1) {
+        @apply text-2xl font-bold mb-4;
+    }
+
+    .preview :global(h2) {
+        @apply text-xl font-bold mb-3;
+    }
+
+    .preview :global(p) {
+        @apply mb-2;
+    }
+
+    .preview :global(ul),
+    .preview :global(ol) {
+        @apply ml-4 mb-2;
+    }
+
+    .preview :global(li) {
+        @apply mb-1;
     }
 </style>

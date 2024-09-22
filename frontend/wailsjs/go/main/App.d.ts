@@ -5,6 +5,8 @@ import {main} from '../models';
 
 export function AddTodo(arg1:time.Time,arg2:string):Promise<void>;
 
+export function CreateFolder(arg1:string):Promise<void>;
+
 export function CreateMarkdownFile(arg1:string,arg2:string):Promise<void>;
 
 export function DateToTimestamp(arg1:string,arg2:boolean):Promise<number>;

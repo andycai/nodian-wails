@@ -6,6 +6,10 @@ export function AddTodo(arg1, arg2) {
   return window['go']['main']['App']['AddTodo'](arg1, arg2);
 }
 
+export function CreateFolder(arg1) {
+  return window['go']['main']['App']['CreateFolder'](arg1);
+}
+
 export function CreateMarkdownFile(arg1, arg2) {
   return window['go']['main']['App']['CreateMarkdownFile'](arg1, arg2);
 }
