@@ -17,6 +17,8 @@ export function EncodeString(arg1:string,arg2:string):Promise<string>;
 
 export function FormatJSON(arg1:string,arg2:boolean):Promise<string>;
 
+export function GetCurrentDirectory():Promise<string>;
+
 export function GetTodos(arg1:time.Time):Promise<Array<main.Todo>>;
 
 export function Greet(arg1:string):Promise<string>;
@@ -30,6 +32,10 @@ export function ReadMarkdownFile(arg1:string):Promise<string>;
 export function RenameItem(arg1:string,arg2:string):Promise<void>;
 
 export function SaveMarkdownFile(arg1:string,arg2:string):Promise<void>;
+
+export function SelectDirectory():Promise<string>;
+
+export function SetCurrentDirectory(arg1:string):Promise<void>;
 
 export function TimestampToDate(arg1:number,arg2:boolean):Promise<string>;
 

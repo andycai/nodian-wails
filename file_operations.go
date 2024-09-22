@@ -1,12 +1,26 @@
 package main
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-const rootDir = "./assets"
+const rootDir = "./nodian"
+
+var currentDirectory string
+
+func init() {
+	// 从配置文件或其他持久化存储中读取上次保存的目录
+	// 这里简单起见，我们使用一个环境变量
+	currentDirectory = os.Getenv("NODIAN_ROOT_DIR")
+	if currentDirectory == "" {
+		currentDirectory = "./nodian"
+	}
+}
 
 func (a *App) CreateMarkdownFile(filename string, content string) error {
 	if !strings.HasPrefix(filename, rootDir) {
@@ -38,16 +52,19 @@ func (a *App) SaveMarkdownFile(filename string, content string) error {
 
 func (a *App) ListMarkdownFiles(directory string) ([]string, error) {
 	if directory == "" || directory == "." {
-		directory = rootDir
+		directory = currentDirectory
 	}
 	var files []string
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		relPath, err := filepath.Rel(rootDir, path)
+		relPath, err := filepath.Rel(directory, path)
 		if err != nil {
 			return err
+		}
+		if relPath == "." {
+			return nil // 跳过根目录
 		}
 		if info.IsDir() {
 			files = append(files, relPath+"/")
@@ -56,6 +73,7 @@ func (a *App) ListMarkdownFiles(directory string) ([]string, error) {
 		}
 		return nil
 	})
+	log.Printf("Listed files: %v", files)
 	return files, err
 }
 
@@ -74,4 +92,31 @@ func (a *App) RenameItem(oldPath, newPath string) error {
 		newPath = filepath.Join(rootDir, newPath)
 	}
 	return os.Rename(oldPath, newPath)
+}
+
+func (a *App) SelectDirectory() (string, error) {
+	selected, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select Root Directory",
+	})
+	if err != nil {
+		return "", err
+	}
+	if selected != "" {
+		currentDirectory = selected
+		// 保存选择的目录到配置文件或其他持久化存储
+		// 这里简单起见，我们使用一个环境变量
+		os.Setenv("NODIAN_ROOT_DIR", currentDirectory)
+	}
+	return currentDirectory, nil
+}
+
+func (a *App) GetCurrentDirectory() string {
+	return currentDirectory
+}
+
+func (a *App) SetCurrentDirectory(dir string) {
+	currentDirectory = dir
+	// 保存选择的目录到配置文件或其他持久化存储
+	// 这里简单起见，我们使用一个环境变量
+	os.Setenv("NODIAN_ROOT_DIR", currentDirectory)
 }

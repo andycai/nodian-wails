@@ -30,6 +30,10 @@ export function FormatJSON(arg1, arg2) {
   return window['go']['main']['App']['FormatJSON'](arg1, arg2);
 }
 
+export function GetCurrentDirectory() {
+  return window['go']['main']['App']['GetCurrentDirectory']();
+}
+
 export function GetTodos(arg1) {
   return window['go']['main']['App']['GetTodos'](arg1);
 }
@@ -56,6 +60,14 @@ export function RenameItem(arg1, arg2) {
 
 export function SaveMarkdownFile(arg1, arg2) {
   return window['go']['main']['App']['SaveMarkdownFile'](arg1, arg2);
+}
+
+export function SelectDirectory() {
+  return window['go']['main']['App']['SelectDirectory']();
+}
+
+export function SetCurrentDirectory(arg1) {
+  return window['go']['main']['App']['SetCurrentDirectory'](arg1);
 }
 
 export function TimestampToDate(arg1, arg2) {

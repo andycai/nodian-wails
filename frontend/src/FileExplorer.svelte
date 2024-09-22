@@ -1,11 +1,16 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import { createEventDispatcher } from "svelte";
     import {
         ListMarkdownFiles,
         CreateMarkdownFile,
         CreateFolder,
         RenameItem,
+        SelectDirectory,
+        GetCurrentDirectory,
+        SetCurrentDirectory,
     } from "../wailsjs/go/main/App";
+    import { truncateName } from "./utils";
 
     export let files: string[] = [];
     export let isDarkMode: boolean;
@@ -16,12 +21,82 @@
     let creatingPath = "";
     let isRenaming = false;
     let renamingItem = "";
+    let currentDirectory = "";
 
     const dispatch = createEventDispatcher();
 
     let expandedFolders: Set<string> = new Set();
     let allFoldersExpanded = false;
     let selectedItem: string | null = null;
+
+    onMount(async () => {
+        currentDirectory = await GetCurrentDirectory();
+        await refreshFiles();
+        // expandedFolders.add("."); // 默认展开根目录
+        // expandedFolders = expandedFolders; // 触发更新
+    });
+
+    // async function refreshFiles() {
+    //     files = await ListMarkdownFiles(currentDirectory);
+    //     if (!files.includes(".")) {
+    //         files = [".", ...files];
+    //     }
+    //     sortFiles();
+    //     console.log("Files after refresh:", files);
+    // }
+
+    async function refreshFiles() {
+        files = await ListMarkdownFiles(currentDirectory);
+        sortFiles();
+        // files.sort((a, b) => {
+        //     const aIsDir = a.endsWith("/");
+        //     const bIsDir = b.endsWith("/");
+        //     if (aIsDir && !bIsDir) return -1;
+        //     if (!bIsDir && aIsDir) return 1;
+        //     return a.localeCompare(b);
+        // });
+    }
+
+    function sortFiles() {
+        files.sort((a, b) => {
+            const aParts = a.split("/").filter(Boolean);
+            const bParts = b.split("/").filter(Boolean);
+            for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+                if (aParts[i] !== bParts[i]) {
+                    const aIsDir = aParts[i].endsWith("/");
+                    const bIsDir = bParts[i].endsWith("/");
+                    if (aIsDir && !bIsDir) return -1;
+                    if (!aIsDir && bIsDir) return 1;
+                    return aParts[i].localeCompare(bParts[i]);
+                }
+            }
+            return aParts.length - bParts.length;
+        });
+    }
+
+    // function sortFiles(files: string[]): string[] {
+    //     return files.sort((a, b) => {
+    //         const aDepth = getDepth(a);
+    //         const bDepth = getDepth(b);
+    //         if (aDepth !== bDepth) return aDepth - bDepth;
+    //         const aIsDir = a.endsWith("/");
+    //         const bIsDir = b.endsWith("/");
+    //         if (aIsDir && !bIsDir) return -1;
+    //         if (!aIsDir && bIsDir) return 1;
+    //         return a.localeCompare(b);
+    //     });
+    // }
+
+    // $: sortedFiles = sortFiles(files);
+
+    async function selectDirectory() {
+        const selectedDir = await SelectDirectory();
+        if (selectedDir) {
+            currentDirectory = selectedDir;
+            await SetCurrentDirectory(currentDirectory);
+            await refreshFiles();
+        }
+    }
 
     async function startCreatingFile(path = "") {
         isCreatingFile = true;
@@ -48,7 +123,7 @@
         if (event.key === "Enter") {
             if (isRenaming) {
                 renameItem();
-            } else {
+            } else if (isCreatingFile || isCreatingFolder) {
                 createItem();
             }
         } else if (event.key === "Escape") {
@@ -67,17 +142,6 @@
         if (path.endsWith("/")) {
             startCreatingFile(path.slice(0, -1));
         }
-    }
-
-    async function refreshFiles() {
-        files = await ListMarkdownFiles("./assets");
-        files.sort((a, b) => {
-            const aIsDir = a.endsWith("/");
-            const bIsDir = b.endsWith("/");
-            if (aIsDir && !bIsDir) return -1;
-            if (!bIsDir && aIsDir) return 1;
-            return a.localeCompare(b);
-        });
     }
 
     async function toggleAllFolders() {
@@ -115,20 +179,19 @@
         return path.split("/").length - 1;
     }
 
-    function sortFiles(files: string[]): string[] {
-        return files.sort((a, b) => {
-            const aDepth = getDepth(a);
-            const bDepth = getDepth(b);
-            if (aDepth !== bDepth) return aDepth - bDepth;
-            const aIsDir = a.endsWith("/");
-            const bIsDir = b.endsWith("/");
-            if (aIsDir && !bIsDir) return -1;
-            if (!aIsDir && bIsDir) return 1;
-            return a.localeCompare(b);
-        });
-    }
-
-    $: sortedFiles = sortFiles(files);
+    // function isVisible(file: string): boolean {
+    //     if (file === ".") return true;
+    //     const parts = file.split("/").filter(Boolean);
+    //     let currentPath = ".";
+    //     for (let i = 0; i < parts.length; i++) {
+    //         if (i === parts.length - 1) return true; // 如果是最后一部分，总是显示
+    //         currentPath += "/" + parts[i];
+    //         if (!expandedFolders.has(currentPath)) {
+    //             return false;
+    //         }
+    //     }
+    //     return true;
+    // }
 
     function isVisible(file: string): boolean {
         const parts = file.split("/").filter(Boolean);
@@ -167,7 +230,11 @@
         if (newItemName) {
             const fullPath = creatingPath
                 ? `${creatingPath}${newItemName}`
-                : `./assets/${newItemName}`;
+                : `${currentDirectory}/${newItemName}`;
+
+            // 检查并创建根目录
+            await CreateFolder(currentDirectory);
+
             if (isCreatingFile) {
                 await CreateMarkdownFile(fullPath, "");
             } else if (isCreatingFolder) {
@@ -186,8 +253,8 @@
 
     async function renameItem() {
         if (newItemName && renamingItem !== newItemName) {
-            const oldPath = renamingItem;
-            const newPath = renamingItem.replace(/[^/]+$/, newItemName);
+            const oldPath = `${currentDirectory}/${renamingItem}`;
+            const newPath = `${currentDirectory}/${newItemName}`;
             await RenameItem(oldPath, newPath);
             await refreshFiles();
         }
@@ -210,7 +277,13 @@
     class="w-64 bg-gray-700 dark:bg-gray-800 p-4 overflow-y-auto custom-scrollbar"
 >
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-semibold text-gray-300">Files</h2>
+        <h2
+            class="text-lg font-semibold text-gray-300 cursor-pointer"
+            on:click={selectDirectory}
+        >
+            {currentDirectory.split("/").pop()?.charAt(0).toUpperCase() +
+                currentDirectory.split("/").pop()?.slice(1) || "Root"}
+        </h2>
         <div class="flex space-x-2">
             <button
                 on:click={() => startCreatingItem(true)}
@@ -297,7 +370,7 @@
         </div>
     </div>
     <ul class="space-y-1">
-        {#each sortedFiles as file}
+        {#each files as file}
             {#if isVisible(file)}
                 <li style="padding-left: {getIndent(file) * 16}px;">
                     {#if isRenaming && file === renamingItem}
@@ -312,7 +385,8 @@
                         <button
                             on:click={() => {
                                 selectItem(file);
-                                if (file.endsWith("/")) toggleFolder(file);
+                                if (file.endsWith("/") || file === ".")
+                                    toggleFolder(file);
                             }}
                             on:keydown={handleKeydown}
                             class="w-full text-left p-1 text-sm hover:bg-gray-600 rounded flex items-center text-gray-300 {selectedItem ===
@@ -320,7 +394,7 @@
                                 ? 'bg-gray-600'
                                 : ''}"
                         >
-                            {#if file.endsWith("/")}
+                            {#if file.endsWith("/") || file === "."}
                                 <svg
                                     class="w-4 h-4 mr-2 text-gray-300 flex-shrink-0"
                                     fill="none"
@@ -353,7 +427,12 @@
                                     ></path>
                                 </svg>
                             {/if}
-                            <span class="truncate">{getFileName(file)}</span>
+                            <span class="truncate">
+                                {truncateName(
+                                    getFileName(file),
+                                    file.endsWith("/") || file === "." ? 8 : 12,
+                                )}
+                            </span>
                         </button>
                     {/if}
                 </li>

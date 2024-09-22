@@ -10,6 +10,7 @@
   import EncodeTool from "./EncodeTool.svelte";
   import FileExplorer from "./FileExplorer.svelte";
   import { ListMarkdownFiles } from "../wailsjs/go/main/App";
+  import { truncateName } from "./utils";
 
   let currentTool = "markdown";
   let isDarkMode = true;
@@ -17,6 +18,8 @@
   let openFiles: string[] = [];
   let selectedFile: string | null = null;
   let selectedFolder: string | null = null;
+
+  const MAX_OPEN_FILES = 10;
 
   function setCurrentTool(tool: string) {
     currentTool = tool;
@@ -34,7 +37,11 @@
   function handleFileSelect(event: CustomEvent<string>) {
     const file = event.detail;
     if (!openFiles.includes(file)) {
-      openFiles = [...openFiles, file];
+      if (openFiles.length >= MAX_OPEN_FILES) {
+        openFiles = [...openFiles.slice(1), file];
+      } else {
+        openFiles = [...openFiles, file];
+      }
     }
     selectedFile = file;
     currentTool = "markdown";
@@ -133,7 +140,7 @@
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
-          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          d="M12 8v4l3 3m-6 3a9 9 0 11-18 0 9 9 0 0118 0z"
         ></path>
       </svg>
     </button>
@@ -233,7 +240,7 @@
               on:click={() => (selectedFile = file)}
             >
               <span class="mr-2 text-gray-900 dark:text-gray-100"
-                >{file.split("/").pop()}</span
+                >{truncateName(file.split("/").pop() || "", 10)}</span
               >
               <button
                 on:click|stopPropagation={() => closeFile(file)}
