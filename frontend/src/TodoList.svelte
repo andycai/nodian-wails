@@ -7,11 +7,11 @@
     $: year = currentDate.getFullYear();
     $: month = currentDate.getMonth();
 
-    function getDaysInMonth(year, month) {
+    function getDaysInMonth(year: number, month: number) {
         return new Date(year, month + 1, 0).getDate();
     }
 
-    function getFirstDayOfMonth(year, month) {
+    function getFirstDayOfMonth(year: number, month: number) {
         return new Date(year, month, 1).getDay();
     }
 
@@ -23,7 +23,7 @@
         currentDate = new Date(year, month + 1, 1);
     }
 
-    function selectDate(day) {
+    function selectDate(day: number) {
         dispatch("selectDate", new Date(year, month, day));
     }
 

@@ -15,7 +15,7 @@
         try {
             output = await DecodeString(input, encoding);
         } catch (error) {
-            output = `Error: ${error.message}`;
+            // output = `Error: ${error.message}`;
         }
     }
 </script>

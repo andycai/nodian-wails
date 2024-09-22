@@ -1,9 +1,9 @@
 <script lang="ts">
     import { TimestampToDate, DateToTimestamp } from "../wailsjs/go/main/App";
 
-    let timestamp = "";
-    let date = "";
-    let isMilliseconds = true;
+    let timestamp: string | null = null;
+    let date: string | null = null;
+    let isMilliseconds: boolean = true;
 
     async function convertTimestamp() {
         if (timestamp) {
@@ -13,7 +13,7 @@
 
     async function convertDate() {
         if (date) {
-            timestamp = await DateToTimestamp(date, isMilliseconds);
+            timestamp = await DateToTimestamp(date, isMilliseconds).toString();
         }
     }
 </script>

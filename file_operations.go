@@ -1,20 +1,19 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
 func (a *App) CreateMarkdownFile(filename string, content string) error {
-	if !filepath.Ext(filename) == ".mk" {
+	if filepath.Ext(filename) != ".mk" {
 		filename += ".mk"
 	}
-	return ioutil.WriteFile(filename, []byte(content), 0644)
+	return os.WriteFile(filename, []byte(content), 0644)
 }
 
 func (a *App) ReadMarkdownFile(filename string) (string, error) {
-	content, err := ioutil.ReadFile(filename)
+	content, err := os.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
@@ -22,7 +21,7 @@ func (a *App) ReadMarkdownFile(filename string) (string, error) {
 }
 
 func (a *App) SaveMarkdownFile(filename string, content string) error {
-	return ioutil.WriteFile(filename, []byte(content), 0644)
+	return os.WriteFile(filename, []byte(content), 0644)
 }
 
 func (a *App) ListMarkdownFiles(directory string) ([]string, error) {

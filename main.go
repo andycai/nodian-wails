@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"embed"
 	"log"
 
@@ -35,16 +34,4 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-type App struct {
-	// TODO: Add app-wide state here
-}
-
-func NewApp() *App {
-	return &App{}
-}
-
-func (a *App) startup(ctx context.Context) {
-	// TODO: Add startup logic here
 }

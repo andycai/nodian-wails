@@ -9,7 +9,7 @@
         try {
             output = await FormatJSON(input, compact);
         } catch (error) {
-            output = `Error: ${error.message}`;
+            // output = `Error: ${error.message}`;
         }
     }
 </script>

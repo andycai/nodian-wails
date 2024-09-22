@@ -10,7 +10,7 @@
 
     let content = "";
     let filename = "";
-    let files = [];
+    let files: string[] = [];
     let md = new MarkdownIt();
 
     onMount(async () => {
@@ -24,7 +24,7 @@
         }
     }
 
-    async function loadFile(file) {
+    async function loadFile(file: string) {
         content = await ReadMarkdownFile(file);
         filename = file;
     }
