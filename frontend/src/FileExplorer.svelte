@@ -10,6 +10,7 @@
         SelectDirectory,
         GetCurrentDirectory,
         SetCurrentDirectory,
+        DeleteItem,
     } from "../wailsjs/go/main/App";
     import { truncateName } from "./utils";
 
@@ -29,6 +30,7 @@
     let expandedFolders: Set<string> = new Set();
     let allFoldersExpanded = false;
     let selectedItem: string | null = null;
+    let hoveredItem: string | null = null;
 
     onMount(async () => {
         currentDirectory = await GetCurrentDirectory();
@@ -213,22 +215,32 @@
         }
     }
 
-    function startRenaming(item: string) {
+    function startRenaming(item: string, event: MouseEvent) {
+        event.stopPropagation();
         isRenaming = true;
         renamingItem = item;
-        newItemName = item.split("/").pop() || "";
+        newItemName = getFileName(item);
     }
 
     async function renameItem() {
         if (newItemName && renamingItem !== newItemName) {
             const oldPath = `${currentDirectory}/${renamingItem}`;
-            const newPath = `${currentDirectory}/${newItemName}`;
+            let newItemPath = getFilePath(renamingItem);
+            const newPath = `${currentDirectory}/${newItemPath}/${newItemName}`;
             await RenameItem(oldPath, newPath);
             await refreshFiles();
         }
         isRenaming = false;
         renamingItem = "";
         newItemName = "";
+    }
+
+    async function deleteItem(item: string, event: MouseEvent) {
+        event.stopPropagation();
+        if (confirm(`Are you sure you want to delete ${getFileName(item)}?`)) {
+            await DeleteItem(`${currentDirectory}/${item}`);
+            await refreshFiles();
+        }
     }
 
     function getIndent(file: string): number {
@@ -238,6 +250,11 @@
     function getFileName(file: string): string {
         const parts = file.split("/").filter(Boolean);
         return parts[parts.length - 1];
+    }
+
+    function getFilePath(file: string): string {
+        const parts = file.split("/").filter(Boolean);
+        return parts.slice(0, -1).join("/");
     }
 </script>
 
@@ -340,7 +357,11 @@
     <ul class="space-y-1">
         {#each files as file}
             {#if isVisible(file)}
-                <li style="padding-left: {getIndent(file) * 16}px;">
+                <li
+                    style="padding-left: {getIndent(file) * 16}px;"
+                    on:mouseenter={() => (hoveredItem = file)}
+                    on:mouseleave={() => (hoveredItem = null)}
+                >
                     {#if isRenaming && file === renamingItem}
                         <input
                             type="text"
@@ -350,58 +371,105 @@
                             autofocus
                         />
                     {:else}
-                        <button
-                            on:click={() => {
-                                selectItem(file);
-                                if (file.endsWith("/") || file === ".")
-                                    toggleFolder(file);
-                            }}
-                            on:keydown={handleKeydown}
-                            class="w-full text-left p-1 text-sm hover:bg-gray-600 rounded flex items-center text-gray-300 {selectedItem ===
-                            file
-                                ? 'bg-gray-600'
-                                : ''}"
-                        >
-                            {#if file.endsWith("/") || file === "."}
-                                <svg
-                                    class="w-4 h-4 mr-2 text-gray-300 flex-shrink-0"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d={isExpanded(file)
-                                            ? "M19 9l-7 7-7-7"
-                                            : "M9 5l7 7-7 7"}
-                                    ></path>
-                                </svg>
-                            {:else}
-                                <svg
-                                    class="w-4 h-4 mr-2 text-gray-300 flex-shrink-0"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                    ></path>
-                                </svg>
+                        <div class="flex items-center justify-between">
+                            <button
+                                on:click={() => {
+                                    selectItem(file);
+                                    if (file.endsWith("/") || file === ".")
+                                        toggleFolder(file);
+                                }}
+                                class="flex-grow text-left p-1 text-sm hover:bg-gray-600 rounded flex items-center text-gray-300 {selectedItem ===
+                                file
+                                    ? 'bg-gray-600'
+                                    : ''}"
+                            >
+                                {#if file.endsWith("/") || file === "."}
+                                    <svg
+                                        class="w-4 h-4 mr-2 text-gray-300 flex-shrink-0"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d={isExpanded(file)
+                                                ? "M19 9l-7 7-7-7"
+                                                : "M9 5l7 7-7 7"}
+                                        ></path>
+                                    </svg>
+                                {:else}
+                                    <svg
+                                        class="w-4 h-4 mr-2 text-gray-300 flex-shrink-0"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                        ></path>
+                                    </svg>
+                                {/if}
+                                <span class="truncate">
+                                    {truncateName(
+                                        getFileName(file),
+                                        file.endsWith("/") || file === "."
+                                            ? 8
+                                            : 12,
+                                    )}
+                                </span>
+                            </button>
+                            {#if hoveredItem === file}
+                                <div class="flex">
+                                    <button
+                                        on:click={(event) =>
+                                            startRenaming(file, event)}
+                                        class="p-1 text-gray-300 hover:text-white"
+                                    >
+                                        <svg
+                                            class="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                            ></path>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        on:click={(event) =>
+                                            deleteItem(file, event)}
+                                        class="p-1 text-gray-300 hover:text-white"
+                                    >
+                                        <svg
+                                            class="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                            ></path>
+                                        </svg>
+                                    </button>
+                                </div>
                             {/if}
-                            <span class="truncate">
-                                {truncateName(
-                                    getFileName(file),
-                                    file.endsWith("/") || file === "." ? 8 : 12,
-                                )}
-                            </span>
-                        </button>
+                        </div>
                     {/if}
                 </li>
             {/if}

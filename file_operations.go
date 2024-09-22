@@ -99,6 +99,7 @@ func (a *App) RenameItem(oldPath, newPath string) error {
 	if !strings.HasPrefix(newPath, rootDir) {
 		newPath = filepath.Join(rootDir, newPath)
 	}
+	log.Printf("Rename: %s=>%s", oldPath, newPath)
 	return os.Rename(oldPath, newPath)
 }
 
@@ -127,4 +128,11 @@ func (a *App) SetCurrentDirectory(dir string) {
 	// 保存选择的目录到配置文件或其他持久化存储
 	// 这里简单起见，我们使用一个环境变量
 	os.Setenv("NODIAN_ROOT_DIR", rootDir)
+}
+
+func (a *App) DeleteItem(path string) error {
+	if !strings.HasPrefix(path, rootDir) {
+		path = filepath.Join(rootDir, path)
+	}
+	return os.RemoveAll(path)
 }

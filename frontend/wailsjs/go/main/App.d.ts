@@ -15,6 +15,8 @@ export function DateToTimestamp(arg1:string,arg2:boolean):Promise<number>;
 
 export function DecodeString(arg1:string,arg2:string):Promise<string>;
 
+export function DeleteItem(arg1:string):Promise<void>;
+
 export function EncodeString(arg1:string,arg2:string):Promise<string>;
 
 export function FormatJSON(arg1:string,arg2:boolean):Promise<string>;

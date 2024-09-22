@@ -11,9 +11,10 @@
   import FileExplorer from "./FileExplorer.svelte";
   import { ListMarkdownFiles } from "../wailsjs/go/main/App";
   import { truncateName } from "./utils";
+  import { writable } from "svelte/store";
 
   let currentTool = "markdown";
-  let isDarkMode = true;
+  let isDarkMode = writable(true);
   let files: string[] = [];
   let openFiles: string[] = [];
   let selectedFile: string | null = null;
@@ -26,13 +27,32 @@
   }
 
   function toggleDarkMode() {
-    isDarkMode = !isDarkMode;
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    isDarkMode.update((value) => {
+      const newValue = !value;
+      localStorage.setItem("isDarkMode", JSON.stringify(newValue));
+      if (newValue) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+      return newValue;
+    });
   }
+
+  onMount(async () => {
+    const storedDarkMode = localStorage.getItem("isDarkMode");
+    if (storedDarkMode !== null) {
+      const parsedDarkMode = JSON.parse(storedDarkMode);
+      isDarkMode.set(parsedDarkMode);
+      if (parsedDarkMode) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+    files = await ListMarkdownFiles("./nodian");
+    document.documentElement.classList.add("dark");
+  });
 
   function handleFileSelect(event: CustomEvent<string>) {
     const file = event.detail;
@@ -57,11 +77,6 @@
       selectedFile = openFiles[openFiles.length - 1] || null;
     }
   }
-
-  onMount(async () => {
-    files = await ListMarkdownFiles("./assets");
-    document.documentElement.classList.add("dark");
-  });
 </script>
 
 <main class="flex h-screen {isDarkMode ? 'dark' : ''}">

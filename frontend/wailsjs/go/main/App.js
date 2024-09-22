@@ -26,6 +26,10 @@ export function DecodeString(arg1, arg2) {
   return window['go']['main']['App']['DecodeString'](arg1, arg2);
 }
 
+export function DeleteItem(arg1) {
+  return window['go']['main']['App']['DeleteItem'](arg1);
+}
+
 export function EncodeString(arg1, arg2) {
   return window['go']['main']['App']['EncodeString'](arg1, arg2);
 }
