@@ -4,6 +4,7 @@
         ListMarkdownFiles,
         CreateMarkdownFile,
         CreateFolder,
+        RenameItem,
     } from "../wailsjs/go/main/App";
 
     export let files: string[] = [];
@@ -13,6 +14,8 @@
     let isCreatingFile = false;
     let isCreatingFolder = false;
     let creatingPath = "";
+    let isRenaming = false;
+    let renamingItem = "";
 
     const dispatch = createEventDispatcher();
 
@@ -34,21 +37,6 @@
         newItemName = "";
     }
 
-    // async function createItem() {
-    //     if (newItemName) {
-    //         const fullPath = creatingPath
-    //             ? `${creatingPath}/${newItemName}`
-    //             : `./assets/${newItemName}`;
-    //         if (isCreatingFile) {
-    //             await CreateMarkdownFile(fullPath, "");
-    //         } else if (isCreatingFolder) {
-    //             await CreateFolder(fullPath);
-    //         }
-    //         await refreshFiles();
-    //         cancelCreating();
-    //     }
-    // }
-
     function cancelCreating() {
         isCreatingFile = false;
         isCreatingFolder = false;
@@ -58,9 +46,15 @@
 
     function handleKeydown(event: KeyboardEvent) {
         if (event.key === "Enter") {
-            createItem();
+            if (isRenaming) {
+                renameItem();
+            } else {
+                createItem();
+            }
         } else if (event.key === "Escape") {
             cancelCreating();
+        } else if (event.key === "F2" && selectedItem) {
+            startRenaming(selectedItem);
         }
     }
 
@@ -183,6 +177,33 @@
             cancelCreating();
         }
     }
+
+    function startRenaming(item: string) {
+        isRenaming = true;
+        renamingItem = item;
+        newItemName = item.split("/").pop() || "";
+    }
+
+    async function renameItem() {
+        if (newItemName && renamingItem !== newItemName) {
+            const oldPath = renamingItem;
+            const newPath = renamingItem.replace(/[^/]+$/, newItemName);
+            await RenameItem(oldPath, newPath);
+            await refreshFiles();
+        }
+        isRenaming = false;
+        renamingItem = "";
+        newItemName = "";
+    }
+
+    function getIndent(file: string): number {
+        return file.split("/").filter(Boolean).length - 1;
+    }
+
+    function getFileName(file: string): string {
+        const parts = file.split("/").filter(Boolean);
+        return parts[parts.length - 1];
+    }
 </script>
 
 <div
@@ -278,57 +299,68 @@
     <ul class="space-y-1">
         {#each sortedFiles as file}
             {#if isVisible(file)}
-                <li style="margin-left: {getDepth(file) * 16}px;">
-                    <button
-                        on:click={() => {
-                            selectItem(file);
-                            if (file.endsWith("/")) toggleFolder(file);
-                        }}
-                        class="w-full text-left p-1 text-sm hover:bg-gray-600 rounded flex items-center text-gray-300 {selectedItem ===
-                        file
-                            ? 'bg-gray-600'
-                            : ''}"
-                    >
-                        {#if file.endsWith("/")}
-                            <svg
-                                class="w-4 h-4 mr-2 text-gray-300"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d={isExpanded(file)
-                                        ? "M19 9l-7 7-7-7"
-                                        : "M9 5l7 7-7 7"}
-                                ></path>
-                            </svg>
-                        {:else}
-                            <svg
-                                class="w-4 h-4 mr-2 text-gray-300"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                ></path>
-                            </svg>
-                        {/if}
-                        {file.split("/").filter(Boolean).pop()}
-                    </button>
+                <li style="padding-left: {getIndent(file) * 16}px;">
+                    {#if isRenaming && file === renamingItem}
+                        <input
+                            type="text"
+                            bind:value={newItemName}
+                            on:keydown={handleKeydown}
+                            class="w-full p-1 text-sm border rounded dark:bg-gray-700 dark:text-white"
+                            autofocus
+                        />
+                    {:else}
+                        <button
+                            on:click={() => {
+                                selectItem(file);
+                                if (file.endsWith("/")) toggleFolder(file);
+                            }}
+                            on:keydown={handleKeydown}
+                            class="w-full text-left p-1 text-sm hover:bg-gray-600 rounded flex items-center text-gray-300 {selectedItem ===
+                            file
+                                ? 'bg-gray-600'
+                                : ''}"
+                        >
+                            {#if file.endsWith("/")}
+                                <svg
+                                    class="w-4 h-4 mr-2 text-gray-300 flex-shrink-0"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d={isExpanded(file)
+                                            ? "M19 9l-7 7-7-7"
+                                            : "M9 5l7 7-7 7"}
+                                    ></path>
+                                </svg>
+                            {:else}
+                                <svg
+                                    class="w-4 h-4 mr-2 text-gray-300 flex-shrink-0"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                    ></path>
+                                </svg>
+                            {/if}
+                            <span class="truncate">{getFileName(file)}</span>
+                        </button>
+                    {/if}
                 </li>
             {/if}
         {/each}
         {#if (isCreatingFile || isCreatingFolder) && creatingPath}
-            <li style="margin-left: {(getDepth(creatingPath) + 1) * 16}px;">
+            <li style="padding-left: {(getIndent(creatingPath) + 1) * 16}px;">
                 <input
                     type="text"
                     bind:value={newItemName}

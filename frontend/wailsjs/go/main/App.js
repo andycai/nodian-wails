@@ -50,6 +50,10 @@ export function ReadMarkdownFile(arg1) {
   return window['go']['main']['App']['ReadMarkdownFile'](arg1);
 }
 
+export function RenameItem(arg1, arg2) {
+  return window['go']['main']['App']['RenameItem'](arg1, arg2);
+}
+
 export function SaveMarkdownFile(arg1, arg2) {
   return window['go']['main']['App']['SaveMarkdownFile'](arg1, arg2);
 }

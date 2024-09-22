@@ -65,3 +65,13 @@ func (a *App) CreateFolder(path string) error {
 	}
 	return os.MkdirAll(path, 0755)
 }
+
+func (a *App) RenameItem(oldPath, newPath string) error {
+	if !strings.HasPrefix(oldPath, rootDir) {
+		oldPath = filepath.Join(rootDir, oldPath)
+	}
+	if !strings.HasPrefix(newPath, rootDir) {
+		newPath = filepath.Join(rootDir, newPath)
+	}
+	return os.Rename(oldPath, newPath)
+}
