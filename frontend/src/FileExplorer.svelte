@@ -13,6 +13,7 @@
         DeleteItem,
     } from "../wailsjs/go/main/App";
     import { truncateName } from "./utils";
+    import ConfirmDialog from "./ConfirmDialog.svelte";
 
     export let files: string[] = [];
     export let isDarkMode: boolean;
@@ -31,6 +32,10 @@
     let allFoldersExpanded = false;
     let selectedItem: string | null = null;
     let hoveredItem: string | null = null;
+
+    let showConfirmDialog = false;
+    let itemToDelete: string | null = null;
+    let confirmMessage = "";
 
     onMount(async () => {
         currentDirectory = await GetCurrentDirectory();
@@ -107,7 +112,11 @@
                 createItem();
             }
         } else if (event.key === "Escape") {
-            cancelCreating();
+            if (isRenaming) {
+                cancelRenaming();
+            } else {
+                cancelCreating();
+            }
         } else if (event.key === "F2" && selectedItem) {
             startRenaming(selectedItem);
         }
@@ -222,6 +231,12 @@
         newItemName = getFileName(item);
     }
 
+    function cancelRenaming() {
+        isRenaming = false;
+        renamingItem = "";
+        newItemName = "";
+    }
+
     async function renameItem() {
         if (newItemName && renamingItem !== newItemName) {
             const oldPath = `${currentDirectory}/${renamingItem}`;
@@ -235,12 +250,23 @@
         newItemName = "";
     }
 
-    async function deleteItem(item: string, event: MouseEvent) {
+    function showDeleteConfirmation(item: string, event: MouseEvent) {
         event.stopPropagation();
-        if (confirm(`Are you sure you want to delete ${getFileName(item)}?`)) {
-            await DeleteItem(`${currentDirectory}/${item}`);
+        itemToDelete = item;
+        confirmMessage = `Are you sure you want to delete ${getFileName(item)}?`;
+        showConfirmDialog = true;
+    }
+
+    async function handleDeleteConfirm() {
+        if (itemToDelete) {
+            await DeleteItem(`${currentDirectory}/${itemToDelete}`);
             await refreshFiles();
         }
+        itemToDelete = null;
+    }
+
+    function handleDeleteCancel() {
+        itemToDelete = null;
     }
 
     function getIndent(file: string): number {
@@ -449,7 +475,7 @@
                                     </button>
                                     <button
                                         on:click={(event) =>
-                                            deleteItem(file, event)}
+                                            showDeleteConfirmation(file, event)}
                                         class="p-1 text-gray-300 hover:text-white"
                                     >
                                         <svg
@@ -487,6 +513,13 @@
         {/if}
     </ul>
 </div>
+
+<ConfirmDialog
+    bind:isOpen={showConfirmDialog}
+    message={confirmMessage}
+    on:confirm={handleDeleteConfirm}
+    on:cancel={handleDeleteCancel}
+/>
 
 <style>
     /* 自定义滚动条样式 */
