@@ -102,13 +102,15 @@
         await refreshFiles();
     }
 
-    function toggleFolder(folder: string) {
+    async function toggleFolder(folder: string) {
         if (expandedFolders.has(folder)) {
             expandedFolders.delete(folder);
         } else {
             expandedFolders.add(folder);
         }
         expandedFolders = expandedFolders; // 触发更新
+
+        await refreshFiles();
     }
 
     function isExpanded(folder: string): boolean {
