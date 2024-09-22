@@ -34,20 +34,20 @@
         newItemName = "";
     }
 
-    async function createItem() {
-        if (newItemName) {
-            const fullPath = creatingPath
-                ? `${creatingPath}/${newItemName}`
-                : `./assets/${newItemName}`;
-            if (isCreatingFile) {
-                await CreateMarkdownFile(fullPath, "");
-            } else if (isCreatingFolder) {
-                await CreateFolder(fullPath);
-            }
-            await refreshFiles();
-            cancelCreating();
-        }
-    }
+    // async function createItem() {
+    //     if (newItemName) {
+    //         const fullPath = creatingPath
+    //             ? `${creatingPath}/${newItemName}`
+    //             : `./assets/${newItemName}`;
+    //         if (isCreatingFile) {
+    //             await CreateMarkdownFile(fullPath, "");
+    //         } else if (isCreatingFolder) {
+    //             await CreateFolder(fullPath);
+    //         }
+    //         await refreshFiles();
+    //         cancelCreating();
+    //     }
+    // }
 
     function cancelCreating() {
         isCreatingFile = false;
@@ -148,6 +148,41 @@
         }
         return true;
     }
+
+    function selectItem(item: string) {
+        selectedItem = item;
+        if (item.endsWith("/")) {
+            dispatch("selectFolder", item);
+        } else {
+            dispatch("selectFile", item);
+        }
+    }
+
+    function startCreatingItem(isFile: boolean) {
+        if (selectedItem && selectedItem.endsWith("/")) {
+            creatingPath = selectedItem;
+        } else {
+            creatingPath = "";
+        }
+        isCreatingFile = isFile;
+        isCreatingFolder = !isFile;
+        newItemName = "";
+    }
+
+    async function createItem() {
+        if (newItemName) {
+            const fullPath = creatingPath
+                ? `${creatingPath}${newItemName}`
+                : `./assets/${newItemName}`;
+            if (isCreatingFile) {
+                await CreateMarkdownFile(fullPath, "");
+            } else if (isCreatingFolder) {
+                await CreateFolder(fullPath);
+            }
+            await refreshFiles();
+            cancelCreating();
+        }
+    }
 </script>
 
 <div
@@ -157,7 +192,7 @@
         <h2 class="text-lg font-semibold text-gray-300">Files</h2>
         <div class="flex space-x-2">
             <button
-                on:click={() => startCreatingFile()}
+                on:click={() => startCreatingItem(true)}
                 class="p-1 rounded hover:bg-gray-600"
                 title="New File"
             >
@@ -177,7 +212,7 @@
                 </svg>
             </button>
             <button
-                on:click={() => startCreatingFolder()}
+                on:click={() => startCreatingItem(false)}
                 class="p-1 rounded hover:bg-gray-600"
                 title="New Folder"
             >
@@ -244,11 +279,17 @@
         {#each sortedFiles as file}
             {#if isVisible(file)}
                 <li style="margin-left: {getDepth(file) * 16}px;">
-                    {#if file.endsWith("/")}
-                        <button
-                            on:click={() => toggleFolder(file)}
-                            class="w-full text-left p-1 text-sm hover:bg-gray-600 rounded flex items-center text-gray-300"
-                        >
+                    <button
+                        on:click={() => {
+                            selectItem(file);
+                            if (file.endsWith("/")) toggleFolder(file);
+                        }}
+                        class="w-full text-left p-1 text-sm hover:bg-gray-600 rounded flex items-center text-gray-300 {selectedItem ===
+                        file
+                            ? 'bg-gray-600'
+                            : ''}"
+                    >
+                        {#if file.endsWith("/")}
                             <svg
                                 class="w-4 h-4 mr-2 text-gray-300"
                                 fill="none"
@@ -265,14 +306,7 @@
                                         : "M9 5l7 7-7 7"}
                                 ></path>
                             </svg>
-                            {file.split("/").filter(Boolean).pop()}
-                        </button>
-                    {:else}
-                        <button
-                            on:click={() => selectFile(file)}
-                            on:contextmenu={(e) => handleContextMenu(e, file)}
-                            class="w-full text-left p-1 text-sm hover:bg-gray-600 rounded flex items-center text-gray-300"
-                        >
+                        {:else}
                             <svg
                                 class="w-4 h-4 mr-2 text-gray-300"
                                 fill="none"
@@ -287,14 +321,14 @@
                                     d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                                 ></path>
                             </svg>
-                            {file.split("/").pop()}
-                        </button>
-                    {/if}
+                        {/if}
+                        {file.split("/").filter(Boolean).pop()}
+                    </button>
                 </li>
             {/if}
         {/each}
-        {#if (isCreatingFile || isCreatingFolder) && !creatingPath}
-            <li>
+        {#if (isCreatingFile || isCreatingFolder) && creatingPath}
+            <li style="margin-left: {(getDepth(creatingPath) + 1) * 16}px;">
                 <input
                     type="text"
                     bind:value={newItemName}
