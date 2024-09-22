@@ -45,33 +45,71 @@
     async function refreshFiles() {
         files = await ListMarkdownFiles(currentDirectory);
         sortFiles();
+
+        // 保留展开状态
+        const newExpandedFolders = new Set<string>();
+        expandedFolders.forEach((folder) => {
+            if (files.includes(folder)) {
+                newExpandedFolders.add(folder);
+            }
+        });
+        expandedFolders = newExpandedFolders;
     }
 
     function sortFiles() {
-        files.sort((a, b) => {
-            const aParts = a.split("/").filter(Boolean);
-            const bParts = b.split("/").filter(Boolean);
+        const sortedFiles: string[] = [];
+        const fileTree: { [key: string]: string[] } = {};
 
-            // 比较共同的父路径
-            for (
-                let i = 0;
-                i < Math.min(aParts.length, bParts.length) - 1;
-                i++
-            ) {
-                if (aParts[i] !== bParts[i]) {
-                    return aParts[i].localeCompare(bParts[i]);
+        // 构建文件树
+        files.forEach((file) => {
+            const parts = file.split("/").filter(Boolean);
+            let currentPath = "";
+            for (let i = 0; i < parts.length; i++) {
+                currentPath += (currentPath ? "/" : "") + parts[i];
+                if (i === parts.length - 1) {
+                    const parentPath = currentPath.substring(
+                        0,
+                        currentPath.lastIndexOf("/"),
+                    );
+                    if (!fileTree[parentPath]) {
+                        fileTree[parentPath] = [];
+                    }
+                    fileTree[parentPath].push(currentPath);
+                } else {
+                    if (!fileTree[currentPath]) {
+                        fileTree[currentPath] = [];
+                    }
                 }
             }
-
-            // 如果父路径相同，文件夹优先
-            const aIsDir = a.endsWith("/");
-            const bIsDir = b.endsWith("/");
-            if (aIsDir && !bIsDir) return -1;
-            if (!aIsDir && bIsDir) return 1;
-
-            // 如果都是文件夹或都是文件，按名称排序
-            return a.localeCompare(b);
         });
+
+        // 递归排序和添加文件
+        function addSortedFiles(path: string) {
+            const items = fileTree[path] || [];
+            const folders = items.filter((item) => fileTree[item]);
+            const files = items.filter((item) => !fileTree[item]);
+
+            // 文件夹按字母顺序排序
+            folders.sort((a, b) => a.localeCompare(b));
+            // 文件按字母顺序排序
+            files.sort((a, b) => a.localeCompare(b));
+
+            // 先添加文件夹
+            folders.forEach((folder) => {
+                sortedFiles.push(folder + "/");
+                addSortedFiles(folder);
+            });
+
+            // 再添加文件
+            files.forEach((file) => {
+                sortedFiles.push(file);
+            });
+        }
+
+        addSortedFiles("");
+
+        files = sortedFiles;
+        console.log("Sorted files:", files);
     }
 
     async function selectDirectory() {
@@ -144,7 +182,7 @@
         } else {
             expandedFolders.clear();
         }
-        expandedFolders = expandedFolders; // 触发更新
+        expandedFolders = new Set(expandedFolders); // 触发更新
 
         await refreshFiles();
     }
@@ -154,9 +192,9 @@
             expandedFolders.delete(folder);
         } else {
             expandedFolders.add(folder);
+            await refreshFiles(); // 展开文件夹时刷新文件列表
         }
-        expandedFolders = expandedFolders; // 触发更新
-        await refreshFiles();
+        expandedFolders = new Set(expandedFolders); // 触发更新
     }
 
     function isExpanded(folder: string): boolean {
@@ -168,12 +206,13 @@
     }
 
     function isVisible(file: string): boolean {
+        if (file === "" || file === "/") return true;
         const parts = file.split("/").filter(Boolean);
-        if (parts.length === 1) return true; // Root level items are always visible
         let currentPath = "";
-        for (let i = 0; i < parts.length - 1; i++) {
-            currentPath += parts[i] + "/";
-            if (!expandedFolders.has(currentPath)) {
+        for (let i = 0; i < parts.length; i++) {
+            if (i === parts.length - 1) return true; // 如果是最后一部分，总是显示
+            currentPath += (currentPath ? "/" : "") + parts[i];
+            if (!expandedFolders.has(currentPath + "/")) {
                 return false;
             }
         }
@@ -206,9 +245,12 @@
 
     async function createItem() {
         if (newItemName) {
-            const fullPath = creatingPath
-                ? `${creatingPath}${newItemName}`
-                : `${currentDirectory}/${newItemName}`;
+            let fullPath;
+            if (creatingPath) {
+                fullPath = `${creatingPath}${creatingPath.endsWith("/") ? "" : "/"}${newItemName}`;
+            } else {
+                fullPath = `${currentDirectory}/${newItemName}`;
+            }
 
             console.log("Creating item:", fullPath, currentDirectory);
             // 检查并创建根目录
@@ -401,15 +443,14 @@
                             <button
                                 on:click={() => {
                                     selectItem(file);
-                                    if (file.endsWith("/") || file === ".")
-                                        toggleFolder(file);
+                                    if (file.endsWith("/")) toggleFolder(file);
                                 }}
                                 class="flex-grow text-left p-1 text-sm hover:bg-gray-600 rounded flex items-center text-gray-300 {selectedItem ===
                                 file
                                     ? 'bg-gray-600'
                                     : ''}"
                             >
-                                {#if file.endsWith("/") || file === "."}
+                                {#if file.endsWith("/")}
                                     <svg
                                         class="w-4 h-4 mr-2 text-gray-300 flex-shrink-0"
                                         fill="none"
@@ -421,7 +462,7 @@
                                             stroke-linecap="round"
                                             stroke-linejoin="round"
                                             stroke-width="2"
-                                            d={isExpanded(file)
+                                            d={expandedFolders.has(file)
                                                 ? "M19 9l-7 7-7-7"
                                                 : "M9 5l7 7-7 7"}
                                         ></path>
@@ -445,9 +486,7 @@
                                 <span class="truncate">
                                     {truncateName(
                                         getFileName(file),
-                                        file.endsWith("/") || file === "."
-                                            ? 8
-                                            : 12,
+                                        file.endsWith("/") ? 8 : 12,
                                     )}
                                 </span>
                             </button>
