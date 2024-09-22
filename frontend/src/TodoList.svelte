@@ -50,7 +50,12 @@
             <div class="day empty"></div>
         {/each}
         {#each Array(daysInMonth) as _, i}
-            <div class="day" on:click={() => selectDate(i + 1)}>{i + 1}</div>
+            <button
+                class="day"
+                on:click={() => selectDate(i + 1)}
+                on:keypress={(e) => e.key === "Enter" && selectDate(i + 1)}
+                >{i + 1}</button
+            >
         {/each}
     </div>
 </div>

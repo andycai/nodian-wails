@@ -1,16 +1,14 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import {
-        CreateMarkdownFile,
-        ReadMarkdownFile,
-        SaveMarkdownFile,
-    } from "../wailsjs/go/main/App";
+    import { ReadMarkdownFile, SaveMarkdownFile } from "../wailsjs/go/main/App";
     import MarkdownIt from "markdown-it";
 
     export let selectedFile: string | null;
 
     let content = "";
     let md = new MarkdownIt();
+    let previousContent = "";
+    let showPreview = true;
 
     $: if (selectedFile) {
         loadFile(selectedFile);
@@ -18,46 +16,63 @@
 
     async function loadFile(file: string) {
         content = await ReadMarkdownFile(file);
+        previousContent = content;
     }
 
-    async function saveFile() {
-        if (selectedFile) {
-            await SaveMarkdownFile(selectedFile, content);
+    $: {
+        if (selectedFile && content !== previousContent) {
+            SaveMarkdownFile(selectedFile, content);
+            previousContent = content;
         }
+    }
+
+    function togglePreview() {
+        showPreview = !showPreview;
     }
 
     $: renderedContent = md.render(content);
 </script>
 
-<div class="markdown-editor">
-    <div class="editor">
-        <textarea
-            bind:value={content}
-            class="w-full h-64 p-2 border rounded dark:bg-gray-800 dark:text-white"
-        ></textarea>
+<div class="markdown-editor h-full flex flex-col">
+    <div class="toolbar flex justify-end p-2">
         <button
-            on:click={saveFile}
-            class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-800"
-            >Save</button
+            on:click={togglePreview}
+            class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
         >
+            <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d={showPreview
+                        ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"}
+                ></path>
+            </svg>
+        </button>
     </div>
-    <div class="preview">
-        {@html renderedContent}
+    <div class="flex-1 flex">
+        <div class="editor flex-1 p-4">
+            <textarea
+                bind:value={content}
+                class="w-full h-full p-2 border rounded resize-none dark:bg-gray-800 dark:text-gray-100"
+            ></textarea>
+        </div>
+        {#if showPreview}
+            <div class="preview flex-1 p-4 overflow-y-auto dark:text-gray-100">
+                {@html renderedContent}
+            </div>
+        {/if}
     </div>
 </div>
 
 <style>
-    .markdown-editor {
-        display: flex;
-        height: 100%;
-    }
-
-    .editor,
-    .preview {
-        flex: 1;
-        padding: 1rem;
-    }
-
     .preview :global(h1) {
         @apply text-2xl font-bold mb-4;
     }

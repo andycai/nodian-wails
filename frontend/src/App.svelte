@@ -1,4 +1,5 @@
 <script lang="ts">
+  import "./app.css";
   import { onMount } from "svelte";
   import MarkdownEditor from "./MarkdownEditor.svelte";
   import Calendar from "./Calendar.svelte";
@@ -11,9 +12,11 @@
   import { ListMarkdownFiles } from "../wailsjs/go/main/App";
 
   let currentTool = "markdown";
-  let isDarkMode = false;
+  let isDarkMode = true;
   let files: string[] = [];
+  let openFiles: string[] = [];
   let selectedFile: string | null = null;
+  let selectedFolder: string | null = null;
 
   function setCurrentTool(tool: string) {
     currentTool = tool;
@@ -29,159 +32,183 @@
   }
 
   function handleFileSelect(event: CustomEvent<string>) {
-    selectedFile = event.detail;
+    const file = event.detail;
+    if (!openFiles.includes(file)) {
+      openFiles = [...openFiles, file];
+    }
+    selectedFile = file;
     currentTool = "markdown";
+  }
+
+  function handleFolderSelect(event: CustomEvent<string>) {
+    selectedFolder = event.detail;
+  }
+
+  function closeFile(file: string) {
+    openFiles = openFiles.filter((f) => f !== file);
+    if (selectedFile === file) {
+      selectedFile = openFiles[openFiles.length - 1] || null;
+    }
   }
 
   onMount(async () => {
     files = await ListMarkdownFiles("./assets");
+    document.documentElement.classList.add("dark");
   });
 </script>
 
-<main class={`flex h-screen ${isDarkMode ? "dark" : ""}`}>
+<main class="flex h-screen {isDarkMode ? 'dark' : ''}">
   <nav
-    class="w-16 bg-gray-100 dark:bg-gray-800 flex flex-col items-center py-4 space-y-4"
+    class="w-16 bg-gray-800 dark:bg-gray-900 flex flex-col items-center py-4 space-y-4"
   >
     <button
       on:click={() => setCurrentTool("markdown")}
-      class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+      class="text-gray-400 hover:text-white"
     >
       <svg
-        class="w-8 h-8"
+        class="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
-        ><path
+      >
+        <path
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
-          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-        ></path></svg
-      >
+          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        ></path>
+      </svg>
     </button>
     <button
       on:click={() => setCurrentTool("calendar")}
-      class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+      class="text-gray-400 hover:text-white"
     >
       <svg
-        class="w-8 h-8"
+        class="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
-        ><path
+      >
+        <path
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-        ></path></svg
-      >
+        ></path>
+      </svg>
     </button>
     <button
       on:click={() => setCurrentTool("json")}
-      class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+      class="text-gray-400 hover:text-white"
     >
       <svg
-        class="w-8 h-8"
+        class="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
-        ><path
+      >
+        <path
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           d="M4 6h16M4 10h16M4 14h16M4 18h16"
-        ></path></svg
-      >
+        ></path>
+      </svg>
     </button>
     <button
       on:click={() => setCurrentTool("timestamp")}
-      class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+      class="text-gray-400 hover:text-white"
     >
       <svg
-        class="w-8 h-8"
+        class="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
-        ><path
+      >
+        <path
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-        ></path></svg
-      >
+        ></path>
+      </svg>
     </button>
     <button
       on:click={() => setCurrentTool("hash")}
-      class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+      class="text-gray-400 hover:text-white"
     >
       <svg
-        class="w-8 h-8"
+        class="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
-        ><path
+      >
+        <path
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
           d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-        ></path></svg
-      >
+        ></path>
+      </svg>
     </button>
     <button
       on:click={() => setCurrentTool("encode")}
-      class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+      class="text-gray-400 hover:text-white"
     >
       <svg
-        class="w-8 h-8"
+        class="w-6 h-6"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
-        ><path
+      >
+        <path
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
-          d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-        ></path></svg
-      >
+          d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+        ></path>
+      </svg>
     </button>
     <button
       on:click={toggleDarkMode}
-      class="mt-auto text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+      class="mt-auto text-gray-400 hover:text-white"
     >
       {#if isDarkMode}
         <svg
-          class="w-8 h-8"
+          class="w-6 h-6"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg"
-          ><path
+        >
+          <path
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-          ></path></svg
-        >
+          ></path>
+        </svg>
       {:else}
         <svg
-          class="w-8 h-8"
+          class="w-6 h-6"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg"
-          ><path
+        >
+          <path
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
             d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-          ></path></svg
-        >
+          ></path>
+        </svg>
       {/if}
     </button>
   </nav>
@@ -191,72 +218,74 @@
       {files}
       {isDarkMode}
       on:selectFile={handleFileSelect}
-      class="w-64 bg-gray-50 dark:bg-gray-700 p-4 overflow-y-auto"
+      on:selectFolder={handleFolderSelect}
     />
-    <div class="flex-1 p-4 bg-white dark:bg-gray-900 overflow-y-auto">
+    <div
+      class="flex-1 flex flex-col bg-gray-100 dark:bg-gray-900 overflow-hidden"
+    >
       {#if currentTool === "markdown"}
-        <MarkdownEditor {selectedFile} />
-      {:else if currentTool === "calendar"}
-        <div class="flex space-x-4">
-          <Calendar />
-          <TodoList />
+        <div class="flex bg-gray-200 dark:bg-gray-800 overflow-x-auto">
+          {#each openFiles as file}
+            <div
+              class="px-4 py-2 flex items-center {selectedFile === file
+                ? 'bg-white dark:bg-gray-700'
+                : 'bg-gray-100 dark:bg-gray-800'} cursor-pointer"
+              on:click={() => (selectedFile = file)}
+            >
+              <span class="mr-2 text-gray-900 dark:text-gray-100"
+                >{file.split("/").pop()}</span
+              >
+              <button
+                on:click|stopPropagation={() => closeFile(file)}
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+          {/each}
         </div>
-      {:else if currentTool === "json"}
-        <JsonFormatter />
-      {:else if currentTool === "timestamp"}
-        <TimestampConverter />
-      {:else if currentTool === "hash"}
-        <HashTool />
-      {:else if currentTool === "encode"}
-        <EncodeTool />
       {/if}
+      <div class="flex-1 p-4 overflow-y-auto">
+        {#if currentTool === "markdown"}
+          <MarkdownEditor {selectedFile} />
+        {:else if currentTool === "calendar"}
+          <div class="flex space-x-4">
+            <Calendar />
+            <TodoList />
+          </div>
+        {:else if currentTool === "json"}
+          <JsonFormatter />
+        {:else if currentTool === "timestamp"}
+          <TimestampConverter />
+        {:else if currentTool === "hash"}
+          <HashTool />
+        {:else if currentTool === "encode"}
+          <EncodeTool />
+        {/if}
+      </div>
     </div>
   </div>
 </main>
 
-<style global>
-  /* 全局样式 */
-  :global(body) {
-    background-color: white;
-    color: #1a202c;
-  }
+<style lang="postcss">
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
 
-  :global(.dark body) {
-    background-color: #1a202c;
-    color: #f7fafc;
-  }
-
-  :global(input),
-  :global(textarea),
-  :global(select) {
-    background-color: white;
-    color: #1a202c;
-    border-color: #e2e8f0;
-  }
-
-  :global(.dark input),
-  :global(.dark textarea),
-  :global(.dark select) {
-    background-color: #2d3748;
-    color: #f7fafc;
-    border-color: #4a5568;
-  }
-
-  :global(button) {
-    background-color: #edf2f7;
-    color: #1a202c;
-  }
-
-  :global(button:hover) {
-    background-color: #e2e8f0;
-  }
-
-  :global(.dark button) {
-    background-color: #4a5568;
-    color: #f7fafc;
-  }
-
-  :global(.dark button:hover) {
-    background-color: #2d3748;
+  body {
+    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
   }
 </style>
