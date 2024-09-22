@@ -5,6 +5,7 @@
         ListMarkdownFiles,
         CreateMarkdownFile,
         CreateFolder,
+        CreateRootFolder,
         RenameItem,
         SelectDirectory,
         GetCurrentDirectory,
@@ -32,62 +33,39 @@
     onMount(async () => {
         currentDirectory = await GetCurrentDirectory();
         await refreshFiles();
-        // expandedFolders.add("."); // 默认展开根目录
-        // expandedFolders = expandedFolders; // 触发更新
     });
-
-    // async function refreshFiles() {
-    //     files = await ListMarkdownFiles(currentDirectory);
-    //     if (!files.includes(".")) {
-    //         files = [".", ...files];
-    //     }
-    //     sortFiles();
-    //     console.log("Files after refresh:", files);
-    // }
 
     async function refreshFiles() {
         files = await ListMarkdownFiles(currentDirectory);
         sortFiles();
-        // files.sort((a, b) => {
-        //     const aIsDir = a.endsWith("/");
-        //     const bIsDir = b.endsWith("/");
-        //     if (aIsDir && !bIsDir) return -1;
-        //     if (!bIsDir && aIsDir) return 1;
-        //     return a.localeCompare(b);
-        // });
     }
 
     function sortFiles() {
         files.sort((a, b) => {
             const aParts = a.split("/").filter(Boolean);
             const bParts = b.split("/").filter(Boolean);
-            for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+
+            // 比较共同的父路径
+            for (
+                let i = 0;
+                i < Math.min(aParts.length, bParts.length) - 1;
+                i++
+            ) {
                 if (aParts[i] !== bParts[i]) {
-                    const aIsDir = aParts[i].endsWith("/");
-                    const bIsDir = bParts[i].endsWith("/");
-                    if (aIsDir && !bIsDir) return -1;
-                    if (!aIsDir && bIsDir) return 1;
                     return aParts[i].localeCompare(bParts[i]);
                 }
             }
-            return aParts.length - bParts.length;
+
+            // 如果父路径相同，文件夹优先
+            const aIsDir = a.endsWith("/");
+            const bIsDir = b.endsWith("/");
+            if (aIsDir && !bIsDir) return -1;
+            if (!aIsDir && bIsDir) return 1;
+
+            // 如果都是文件夹或都是文件，按名称排序
+            return a.localeCompare(b);
         });
     }
-
-    // function sortFiles(files: string[]): string[] {
-    //     return files.sort((a, b) => {
-    //         const aDepth = getDepth(a);
-    //         const bDepth = getDepth(b);
-    //         if (aDepth !== bDepth) return aDepth - bDepth;
-    //         const aIsDir = a.endsWith("/");
-    //         const bIsDir = b.endsWith("/");
-    //         if (aIsDir && !bIsDir) return -1;
-    //         if (!aIsDir && bIsDir) return 1;
-    //         return a.localeCompare(b);
-    //     });
-    // }
-
-    // $: sortedFiles = sortFiles(files);
 
     async function selectDirectory() {
         const selectedDir = await SelectDirectory();
@@ -167,7 +145,6 @@
             expandedFolders.add(folder);
         }
         expandedFolders = expandedFolders; // 触发更新
-
         await refreshFiles();
     }
 
@@ -178,20 +155,6 @@
     function getDepth(path: string): number {
         return path.split("/").length - 1;
     }
-
-    // function isVisible(file: string): boolean {
-    //     if (file === ".") return true;
-    //     const parts = file.split("/").filter(Boolean);
-    //     let currentPath = ".";
-    //     for (let i = 0; i < parts.length; i++) {
-    //         if (i === parts.length - 1) return true; // 如果是最后一部分，总是显示
-    //         currentPath += "/" + parts[i];
-    //         if (!expandedFolders.has(currentPath)) {
-    //             return false;
-    //         }
-    //     }
-    //     return true;
-    // }
 
     function isVisible(file: string): boolean {
         const parts = file.split("/").filter(Boolean);
@@ -219,7 +182,11 @@
         if (selectedItem && selectedItem.endsWith("/")) {
             creatingPath = selectedItem;
         } else {
-            creatingPath = "";
+            if (!selectedItem) {
+                creatingPath = currentDirectory + "/";
+            } else {
+                creatingPath = "";
+            }
         }
         isCreatingFile = isFile;
         isCreatingFolder = !isFile;
@@ -232,8 +199,9 @@
                 ? `${creatingPath}${newItemName}`
                 : `${currentDirectory}/${newItemName}`;
 
+            console.log("Creating item:", fullPath, currentDirectory);
             // 检查并创建根目录
-            await CreateFolder(currentDirectory);
+            await CreateRootFolder(currentDirectory);
 
             if (isCreatingFile) {
                 await CreateMarkdownFile(fullPath, "");

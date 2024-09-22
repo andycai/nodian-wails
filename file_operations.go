@@ -9,16 +9,14 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-const rootDir = "./nodian"
-
-var currentDirectory string
+var rootDir string
 
 func init() {
 	// 从配置文件或其他持久化存储中读取上次保存的目录
 	// 这里简单起见，我们使用一个环境变量
-	currentDirectory = os.Getenv("NODIAN_ROOT_DIR")
-	if currentDirectory == "" {
-		currentDirectory = "./nodian"
+	rootDir = os.Getenv("NODIAN_ROOT_DIR")
+	if rootDir == "" {
+		rootDir = "./nodian"
 	}
 }
 
@@ -52,7 +50,7 @@ func (a *App) SaveMarkdownFile(filename string, content string) error {
 
 func (a *App) ListMarkdownFiles(directory string) ([]string, error) {
 	if directory == "" || directory == "." {
-		directory = currentDirectory
+		directory = rootDir
 	}
 	var files []string
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
@@ -73,6 +71,9 @@ func (a *App) ListMarkdownFiles(directory string) ([]string, error) {
 		}
 		return nil
 	})
+	if len(files) == 0 {
+		files = append(files, "./")
+	}
 	log.Printf("Listed files: %v", files)
 	return files, err
 }
@@ -82,6 +83,13 @@ func (a *App) CreateFolder(path string) error {
 		path = filepath.Join(rootDir, path)
 	}
 	return os.MkdirAll(path, 0755)
+}
+
+func (a *App) CreateRootFolder(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return os.MkdirAll(path, 0755)
+	}
+	return nil
 }
 
 func (a *App) RenameItem(oldPath, newPath string) error {
@@ -102,21 +110,21 @@ func (a *App) SelectDirectory() (string, error) {
 		return "", err
 	}
 	if selected != "" {
-		currentDirectory = selected
+		rootDir = selected
 		// 保存选择的目录到配置文件或其他持久化存储
 		// 这里简单起见，我们使用一个环境变量
-		os.Setenv("NODIAN_ROOT_DIR", currentDirectory)
+		os.Setenv("NODIAN_ROOT_DIR", rootDir)
 	}
-	return currentDirectory, nil
+	return rootDir, nil
 }
 
 func (a *App) GetCurrentDirectory() string {
-	return currentDirectory
+	return rootDir
 }
 
 func (a *App) SetCurrentDirectory(dir string) {
-	currentDirectory = dir
+	rootDir = dir
 	// 保存选择的目录到配置文件或其他持久化存储
 	// 这里简单起见，我们使用一个环境变量
-	os.Setenv("NODIAN_ROOT_DIR", currentDirectory)
+	os.Setenv("NODIAN_ROOT_DIR", rootDir)
 }

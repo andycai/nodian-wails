@@ -14,6 +14,10 @@ export function CreateMarkdownFile(arg1, arg2) {
   return window['go']['main']['App']['CreateMarkdownFile'](arg1, arg2);
 }
 
+export function CreateRootFolder(arg1) {
+  return window['go']['main']['App']['CreateRootFolder'](arg1);
+}
+
 export function DateToTimestamp(arg1, arg2) {
   return window['go']['main']['App']['DateToTimestamp'](arg1, arg2);
 }
