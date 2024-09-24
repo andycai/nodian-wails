@@ -14,7 +14,6 @@
     const dispatch = createEventDispatcher();
 
     $: if (selectedFile) {
-        console.log("selectedFile", selectedFile);
         loadFile(selectedFile);
     }
 
@@ -30,7 +29,7 @@
 
     $: {
         if (selectedFile && content !== previousContent) {
-            dispatch("markModified", selectedFile);
+            dispatch("markModified", [selectedFile, content]);
         }
     }
 
@@ -51,6 +50,7 @@
 
     async function saveFile() {
         if (selectedFile) {
+            console.log("saveFile", content);
             await SaveMarkdownFile(selectedFile, content);
             previousContent = content;
             dispatch("markSaved", selectedFile);
