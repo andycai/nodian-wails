@@ -10,8 +10,9 @@
     let content = "";
     let md = new MarkdownIt();
     let previousContent = "";
-    const showPreview = writable(true);
     const dispatch = createEventDispatcher();
+    let editorElement: HTMLTextAreaElement;
+    let previewElement: HTMLDivElement;
 
     $: if (selectedFile) {
         loadFile(selectedFile);
@@ -33,14 +34,6 @@
         }
     }
 
-    function togglePreview() {
-        showPreview.update((value) => {
-            const newValue = !value;
-            localStorage.setItem("showPreview", JSON.stringify(newValue));
-            return newValue;
-        });
-    }
-
     function handleKeydown(event: KeyboardEvent) {
         // 支持 Windows 的 Ctrl+S 和 macOS 的 Cmd+S
         if ((event.ctrlKey || event.metaKey) && event.key === "s") {
@@ -57,11 +50,12 @@
         }
     }
 
+    function handleInput(event: Event) {
+        const target = event.target as HTMLTextAreaElement;
+        content = target.value;
+    }
+
     onMount(() => {
-        const storedShowPreview = localStorage.getItem("showPreview");
-        if (storedShowPreview !== null) {
-            showPreview.set(JSON.parse(storedShowPreview));
-        }
         window.addEventListener("keydown", handleKeydown);
         return () => {
             window.removeEventListener("keydown", handleKeydown);
@@ -69,48 +63,54 @@
     });
 
     $: renderedContent = md.render(content);
+
+    function syncScroll() {
+        if (previewElement) {
+            const percentage =
+                editorElement.scrollTop /
+                (editorElement.scrollHeight - editorElement.clientHeight);
+            previewElement.scrollTop =
+                percentage *
+                (previewElement.scrollHeight - previewElement.clientHeight);
+        }
+    }
 </script>
 
-<div class="markdown-editor h-full flex flex-col">
-    <div class="toolbar flex justify-end">
-        <button
-            on:click={togglePreview}
-            class="rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-        >
-            <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 22 22"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d={$showPreview
-                        ? "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                        : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"}
-                ></path>
-            </svg>
-        </button>
-    </div>
-    <div class="flex-1 flex">
-        <div class="editor flex-1 px-2">
-            <textarea
-                bind:value={content}
-                class="w-full h-full p-2 border rounded resize-none dark:bg-gray-800 dark:text-gray-100 custom-scrollbar"
-            ></textarea>
-        </div>
-        {#if $showPreview}
-            <div class="preview flex-1 px-2 overflow-y-auto dark:text-gray-100">
-                {@html renderedContent}
-            </div>
-        {/if}
+<div class="markdown-editor h-full flex">
+    <textarea
+        bind:this={editorElement}
+        bind:value={content}
+        on:input={handleInput}
+        on:scroll={syncScroll}
+        class="editor flex-1 p-4 overflow-y-auto dark:bg-gray-800 dark:text-gray-100 custom-scrollbar resize-none"
+    ></textarea>
+    <div
+        bind:this={previewElement}
+        class="preview flex-1 p-4 overflow-y-auto dark:bg-gray-800 dark:text-gray-100 custom-scrollbar"
+    >
+        {@html renderedContent}
     </div>
 </div>
 
 <style>
+    .markdown-editor {
+        display: flex;
+    }
+
+    .editor,
+    .preview {
+        width: 50%;
+        height: 100%;
+    }
+
+    .editor {
+        font-family: monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+        border: none;
+        outline: none;
+    }
+
     .preview :global(h1) {
         @apply text-2xl font-bold mb-4;
     }
