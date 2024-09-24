@@ -19,13 +19,19 @@
     }
 
     async function loadFile(file: string) {
-        if (fileContents[file]) {
-            content = fileContents[file];
-        } else {
-            content = await ReadMarkdownFile(file);
-            fileContents[file] = content;
+        try {
+            if (fileContents[file]) {
+                content = fileContents[file];
+            } else {
+                content = await ReadMarkdownFile(file);
+                fileContents[file] = content;
+            }
+            previousContent = content;
+        } catch (error) {
+            // console.error(`Error loading file ${file}:`, error);
+            content = `Error: Unable to load file ${file}. The file may not exist or you may not have permission to access it.`;
+            previousContent = content;
         }
-        previousContent = content;
     }
 
     $: {

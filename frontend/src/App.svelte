@@ -62,8 +62,16 @@
     if (storedOpenFiles !== null) {
       openFiles = JSON.parse(storedOpenFiles);
       for (const file of openFiles) {
-        fileContents[file] = await ReadMarkdownFile(file);
+        try {
+          const fileContent = await ReadMarkdownFile(file);
+          fileContents[file] = fileContent;
+        } catch (error) {
+          // console.error(`Error reading file ${file}:`, error);
+          // 从 openFiles 中移除无法读取的文件
+          openFiles = openFiles.filter((f) => f !== file);
+        }
       }
+      localStorage.setItem("openFiles", JSON.stringify(openFiles));
     }
     if (storedSelectedFile !== null) {
       selectedFile = storedSelectedFile;
@@ -73,19 +81,31 @@
     // sortFiles();
   });
 
-  function handleFileSelect(event: CustomEvent<string>) {
+  async function handleFileSelect(event: CustomEvent<string>) {
     const file = event.detail;
-    if (!openFiles.includes(file)) {
-      if (openFiles.length >= MAX_OPEN_FILES) {
-        openFiles = [...openFiles.slice(1), file];
-      } else {
-        openFiles = [...openFiles, file];
+    try {
+      if (!openFiles.includes(file)) {
+        if (openFiles.length >= MAX_OPEN_FILES) {
+          openFiles = [...openFiles.slice(1), file];
+        } else {
+          openFiles = [...openFiles, file];
+        }
+        localStorage.setItem("openFiles", JSON.stringify(openFiles));
       }
+      const fileContent = await ReadMarkdownFile(file);
+      fileContents[file] = fileContent;
+      selectedFile = file;
+      localStorage.setItem("selectedFile", file);
+      currentTool = "markdown";
+    } catch (error) {
+      console.error(`Error opening file ${file}:`, error);
+      alert(
+        `Failed to open file ${file}. The file may not exist or you may not have permission to access it.`,
+      );
+      // 从 openFiles 中移除无法打开的文件
+      openFiles = openFiles.filter((f) => f !== file);
       localStorage.setItem("openFiles", JSON.stringify(openFiles));
     }
-    selectedFile = file;
-    localStorage.setItem("selectedFile", file);
-    currentTool = "markdown";
   }
 
   function handlerFileSelectInTabs(file: string) {
