@@ -1,29 +1,35 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, createEventDispatcher } from "svelte";
     import { ReadMarkdownFile, SaveMarkdownFile } from "../wailsjs/go/main/App";
     import MarkdownIt from "markdown-it";
     import { writable } from "svelte/store";
 
     export let selectedFile: string | null;
+    export let fileContents: { [key: string]: string };
 
     let content = "";
     let md = new MarkdownIt();
     let previousContent = "";
     const showPreview = writable(true);
+    const dispatch = createEventDispatcher();
 
     $: if (selectedFile) {
         loadFile(selectedFile);
     }
 
     async function loadFile(file: string) {
-        content = await ReadMarkdownFile(file);
+        if (fileContents[file]) {
+            content = fileContents[file];
+        } else {
+            content = await ReadMarkdownFile(file);
+            fileContents[file] = content;
+        }
         previousContent = content;
     }
 
     $: {
         if (selectedFile && content !== previousContent) {
-            SaveMarkdownFile(selectedFile, content);
-            previousContent = content;
+            dispatch("markModified", selectedFile);
         }
     }
 
@@ -35,27 +41,46 @@
         });
     }
 
+    function handleKeydown(event: KeyboardEvent) {
+        if (event.ctrlKey && event.key === "s") {
+            event.preventDefault();
+            saveFile();
+        }
+    }
+
+    async function saveFile() {
+        if (selectedFile) {
+            await SaveMarkdownFile(selectedFile, content);
+            previousContent = content;
+            dispatch("markSaved", selectedFile);
+        }
+    }
+
     onMount(() => {
         const storedShowPreview = localStorage.getItem("showPreview");
         if (storedShowPreview !== null) {
             showPreview.set(JSON.parse(storedShowPreview));
         }
+        window.addEventListener("keydown", handleKeydown);
+        return () => {
+            window.removeEventListener("keydown", handleKeydown);
+        };
     });
 
     $: renderedContent = md.render(content);
 </script>
 
 <div class="markdown-editor h-full flex flex-col">
-    <div class="toolbar flex justify-end p-2">
+    <div class="toolbar flex justify-end">
         <button
             on:click={togglePreview}
-            class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+            class="rounded hover:bg-gray-200 dark:hover:bg-gray-700"
         >
             <svg
-                class="w-6 h-6"
+                class="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
-                viewBox="0 0 24 24"
+                viewBox="0 0 22 22"
                 xmlns="http://www.w3.org/2000/svg"
             >
                 <path
@@ -70,14 +95,14 @@
         </button>
     </div>
     <div class="flex-1 flex">
-        <div class="editor flex-1 p-4">
+        <div class="editor flex-1 px-2">
             <textarea
                 bind:value={content}
-                class="w-full h-full p-2 border rounded resize-none dark:bg-gray-800 dark:text-gray-100"
+                class="w-full h-full p-2 border rounded resize-none dark:bg-gray-800 dark:text-gray-100 custom-scrollbar"
             ></textarea>
         </div>
         {#if $showPreview}
-            <div class="preview flex-1 p-4 overflow-y-auto dark:text-gray-100">
+            <div class="preview flex-1 px-2 overflow-y-auto dark:text-gray-100">
                 {@html renderedContent}
             </div>
         {/if}
@@ -104,5 +129,25 @@
 
     .preview :global(li) {
         @apply mb-1;
+    }
+
+    /* 自定义滚动条样式 */
+    .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
+        border-radius: 3px;
     }
 </style>

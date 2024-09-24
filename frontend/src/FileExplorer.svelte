@@ -192,17 +192,9 @@
             expandedFolders.delete(folder);
         } else {
             expandedFolders.add(folder);
-            await refreshFiles(); // 展开文件夹时刷新文件列表
         }
         expandedFolders = new Set(expandedFolders); // 触发更新
-    }
-
-    function isExpanded(folder: string): boolean {
-        return expandedFolders.has(folder);
-    }
-
-    function getDepth(path: string): number {
-        return path.split("/").length - 1;
+        await refreshFiles();
     }
 
     function isVisible(file: string): boolean {
@@ -327,11 +319,11 @@
 </script>
 
 <div
-    class="w-64 bg-gray-700 dark:bg-gray-800 p-4 overflow-y-auto custom-scrollbar"
+    class="w-64 bg-gray-100 dark:bg-gray-800 p-4 overflow-y-auto custom-scrollbar"
 >
     <div class="flex justify-between items-center mb-4">
         <h2
-            class="text-lg font-semibold text-gray-300 cursor-pointer"
+            class="text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer"
             on:click={selectDirectory}
         >
             {currentDirectory.split("/").pop()?.charAt(0).toUpperCase() +
@@ -340,11 +332,11 @@
         <div class="flex space-x-2">
             <button
                 on:click={() => startCreatingItem(true)}
-                class="p-1 rounded hover:bg-gray-600"
+                class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
                 title="New File"
             >
                 <svg
-                    class="w-4 h-4 text-gray-300"
+                    class="w-4 h-4 text-gray-900 dark:text-gray-100"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -360,11 +352,11 @@
             </button>
             <button
                 on:click={() => startCreatingItem(false)}
-                class="p-1 rounded hover:bg-gray-600"
+                class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
                 title="New Folder"
             >
                 <svg
-                    class="w-4 h-4 text-gray-300"
+                    class="w-4 h-4 text-gray-900 dark:text-gray-100"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -380,11 +372,11 @@
             </button>
             <button
                 on:click={refreshFiles}
-                class="p-1 rounded hover:bg-gray-600"
+                class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
                 title="Refresh"
             >
                 <svg
-                    class="w-4 h-4 text-gray-300"
+                    class="w-4 h-4 text-gray-900 dark:text-gray-100"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -400,11 +392,11 @@
             </button>
             <button
                 on:click={toggleAllFolders}
-                class="p-1 rounded hover:bg-gray-600"
+                class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
                 title={allFoldersExpanded ? "Collapse All" : "Expand All"}
             >
                 <svg
-                    class="w-4 h-4 text-gray-300"
+                    class="w-4 h-4 text-gray-900 dark:text-gray-100"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -445,14 +437,14 @@
                                     selectItem(file);
                                     if (file.endsWith("/")) toggleFolder(file);
                                 }}
-                                class="flex-grow text-left p-1 text-sm hover:bg-gray-600 rounded flex items-center text-gray-300 {selectedItem ===
+                                class="flex-grow text-left p-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center text-gray-900 dark:text-gray-100 {selectedItem ===
                                 file
-                                    ? 'bg-gray-600'
+                                    ? 'bg-gray-200 dark:bg-gray-700'
                                     : ''}"
                             >
                                 {#if file.endsWith("/")}
                                     <svg
-                                        class="w-4 h-4 mr-2 text-gray-300 flex-shrink-0"
+                                        class="w-4 h-4 mr-2 text-gray-900 dark:text-gray-100 flex-shrink-0"
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -469,7 +461,7 @@
                                     </svg>
                                 {:else}
                                     <svg
-                                        class="w-4 h-4 mr-2 text-gray-300 flex-shrink-0"
+                                        class="w-4 h-4 mr-2 text-gray-900 dark:text-gray-100 flex-shrink-0"
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -495,7 +487,7 @@
                                     <button
                                         on:click={(event) =>
                                             startRenaming(file, event)}
-                                        class="p-1 text-gray-300 hover:text-white"
+                                        class="p-1 text-gray-900 dark:text-gray-100 hover:text-white"
                                     >
                                         <svg
                                             class="w-4 h-4"
@@ -515,7 +507,7 @@
                                     <button
                                         on:click={(event) =>
                                             showDeleteConfirmation(file, event)}
-                                        class="p-1 text-gray-300 hover:text-white"
+                                        class="p-1 text-gray-900 dark:text-gray-100 hover:text-white"
                                     >
                                         <svg
                                             class="w-4 h-4"
