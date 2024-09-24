@@ -9,7 +9,11 @@
   import HashTool from "./HashTool.svelte";
   import EncodeTool from "./EncodeTool.svelte";
   import FileExplorer from "./FileExplorer.svelte";
-  import { ListMarkdownFiles } from "../wailsjs/go/main/App";
+  import {
+    ListMarkdownFiles,
+    ReadMarkdownFile,
+    SaveMarkdownFile,
+  } from "../wailsjs/go/main/App";
   import { truncateName } from "./utils";
   import { writable } from "svelte/store";
 
@@ -19,6 +23,8 @@
   let openFiles: string[] = [];
   let selectedFile: string | null = null;
   let selectedFolder: string | null = null;
+  let fileContents: { [key: string]: string } = {};
+  let modifiedFiles: Set<string> = new Set();
 
   const MAX_OPEN_FILES = 10;
 
@@ -50,8 +56,21 @@
         document.documentElement.classList.remove("dark");
       }
     }
-    files = await ListMarkdownFiles("./nodian");
-    document.documentElement.classList.add("dark");
+
+    const storedOpenFiles = localStorage.getItem("openFiles");
+    const storedSelectedFile = localStorage.getItem("selectedFile");
+    if (storedOpenFiles !== null) {
+      openFiles = JSON.parse(storedOpenFiles);
+      for (const file of openFiles) {
+        fileContents[file] = await ReadMarkdownFile(file);
+      }
+    }
+    if (storedSelectedFile !== null) {
+      selectedFile = storedSelectedFile;
+    }
+
+    // files = await ListMarkdownFiles("./nodian");
+    // sortFiles();
   });
 
   function handleFileSelect(event: CustomEvent<string>) {
@@ -62,9 +81,16 @@
       } else {
         openFiles = [...openFiles, file];
       }
+      localStorage.setItem("openFiles", JSON.stringify(openFiles));
     }
     selectedFile = file;
+    localStorage.setItem("selectedFile", file);
     currentTool = "markdown";
+  }
+
+  function handlerFileSelectInTabs(file: string) {
+    selectedFile = file;
+    localStorage.setItem("selectedFile", file);
   }
 
   function handleFolderSelect(event: CustomEvent<string>) {
@@ -73,13 +99,80 @@
 
   function closeFile(file: string) {
     openFiles = openFiles.filter((f) => f !== file);
+    localStorage.setItem("openFiles", JSON.stringify(openFiles));
     if (selectedFile === file) {
       selectedFile = openFiles[openFiles.length - 1] || null;
+      localStorage.setItem("selectedFile", selectedFile || "");
     }
+    modifiedFiles.delete(file);
+  }
+
+  function sortFiles() {
+    const sortedFiles: string[] = [];
+    const fileTree: { [key: string]: string[] } = {};
+
+    // 构建文件树
+    files.forEach((file) => {
+      const parts = file.split("/").filter(Boolean);
+      let currentPath = "";
+      for (let i = 0; i < parts.length; i++) {
+        currentPath += (currentPath ? "/" : "") + parts[i];
+        if (i === parts.length - 1) {
+          const parentPath = currentPath.substring(
+            0,
+            currentPath.lastIndexOf("/"),
+          );
+          if (!fileTree[parentPath]) {
+            fileTree[parentPath] = [];
+          }
+          fileTree[parentPath].push(currentPath);
+        } else {
+          if (!fileTree[currentPath]) {
+            fileTree[currentPath] = [];
+          }
+        }
+      }
+    });
+
+    // 递归排序和添加文件
+    function addSortedFiles(path: string) {
+      const items = fileTree[path] || [];
+      const folders = items.filter((item) => fileTree[item]);
+      const files = items.filter((item) => !fileTree[item]);
+
+      // 文件夹按字母顺序排序
+      folders.sort((a, b) => a.localeCompare(b));
+      // 文件按字母顺序排序
+      files.sort((a, b) => a.localeCompare(b));
+
+      // 先添加文件夹
+      folders.forEach((folder) => {
+        sortedFiles.push(folder + "/");
+        addSortedFiles(folder);
+      });
+
+      // 再添加文件
+      files.forEach((file) => {
+        sortedFiles.push(file);
+      });
+    }
+
+    addSortedFiles("");
+
+    files = sortedFiles;
+    console.log("Sorted files:", files);
+  }
+
+  function markFileAsModified(file: string) {
+    modifiedFiles.add(file);
+  }
+
+  function markFileAsSaved(file: string) {
+    modifiedFiles.delete(file);
   }
 </script>
 
-<main class="flex h-screen {isDarkMode ? 'dark' : ''}">
+<main class="flex h-screen" class:dark={$isDarkMode}>
   <nav
     class="w-16 bg-gray-800 dark:bg-gray-900 flex flex-col items-center py-4 space-y-4"
   >
@@ -201,7 +294,7 @@
       on:click={toggleDarkMode}
       class="mt-auto text-gray-400 hover:text-white"
     >
-      {#if isDarkMode}
+      {#if $isDarkMode}
         <svg
           class="w-6 h-6"
           fill="none"
@@ -238,7 +331,7 @@
   <div class="flex-1 flex">
     <FileExplorer
       {files}
-      {isDarkMode}
+      isDarkMode={$isDarkMode}
       on:selectFile={handleFileSelect}
       on:selectFolder={handleFolderSelect}
     />
@@ -252,10 +345,13 @@
               class="px-4 py-2 flex items-center {selectedFile === file
                 ? 'bg-white dark:bg-gray-700'
                 : 'bg-gray-100 dark:bg-gray-800'} cursor-pointer"
-              on:click={() => (selectedFile = file)}
+              on:click={() => handlerFileSelectInTabs(file)}
             >
               <span class="mr-2 text-gray-900 dark:text-gray-100"
-                >{truncateName(file.split("/").pop() || "", 10)}</span
+                >{truncateName(
+                  file.split("/").pop() || "",
+                  10,
+                )}{modifiedFiles.has(file) ? "*" : ""}</span
               >
               <button
                 on:click|stopPropagation={() => closeFile(file)}
@@ -282,7 +378,12 @@
       {/if}
       <div class="flex-1 p-4 overflow-y-auto">
         {#if currentTool === "markdown"}
-          <MarkdownEditor {selectedFile} />
+          <MarkdownEditor
+            {selectedFile}
+            {fileContents}
+            on:markModified={markFileAsModified}
+            on:markSaved={markFileAsSaved}
+          />
         {:else if currentTool === "calendar"}
           <div class="flex space-x-4">
             <Calendar />
@@ -307,7 +408,7 @@
   @tailwind components;
   @tailwind utilities;
 
-  body {
-    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+  :global(body) {
+    @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100;
   }
 </style>

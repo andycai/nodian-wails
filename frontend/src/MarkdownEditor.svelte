@@ -14,6 +14,7 @@
     const dispatch = createEventDispatcher();
 
     $: if (selectedFile) {
+        console.log("selectedFile", selectedFile);
         loadFile(selectedFile);
     }
 
