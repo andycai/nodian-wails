@@ -42,7 +42,8 @@
     }
 
     function handleKeydown(event: KeyboardEvent) {
-        if (event.ctrlKey && event.key === "s") {
+        // 支持 Windows 的 Ctrl+S 和 macOS 的 Cmd+S
+        if ((event.ctrlKey || event.metaKey) && event.key === "s") {
             event.preventDefault();
             saveFile();
         }
@@ -50,7 +51,6 @@
 
     async function saveFile() {
         if (selectedFile) {
-            console.log("saveFile", content);
             await SaveMarkdownFile(selectedFile, content);
             previousContent = content;
             dispatch("markSaved", selectedFile);

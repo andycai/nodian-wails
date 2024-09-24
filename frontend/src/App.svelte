@@ -97,14 +97,21 @@
     selectedFolder = event.detail;
   }
 
-  function closeFile(file: string) {
+  async function closeFile(file: string) {
+    // 如果文件被修改过，先保存
+    if (modifiedFiles.has(file)) {
+      await SaveMarkdownFile(file, fileContents[file]);
+      modifiedFiles.delete(file);
+    }
+
     openFiles = openFiles.filter((f) => f !== file);
     localStorage.setItem("openFiles", JSON.stringify(openFiles));
     if (selectedFile === file) {
       selectedFile = openFiles[openFiles.length - 1] || null;
       localStorage.setItem("selectedFile", selectedFile || "");
     }
-    modifiedFiles.delete(file);
+    // 从 fileContents 中移除该文件的内容
+    delete fileContents[file];
   }
 
   function sortFiles() {
@@ -163,12 +170,18 @@
     console.log("Sorted files:", files);
   }
 
-  function markFileAsModified(file: string) {
+  function markFileAsModified(event: CustomEvent<[string, string]>) {
+    const [file, content] = event.detail;
     modifiedFiles.add(file);
+    fileContents[file] = content;
+    modifiedFiles = new Set(modifiedFiles); // 触发更新
   }
 
-  function markFileAsSaved(file: string) {
+  async function markFileAsSaved(event: CustomEvent<string>) {
+    const file = event.detail;
     modifiedFiles.delete(file);
+    await SaveMarkdownFile(file, fileContents[file]);
+    modifiedFiles = new Set(modifiedFiles); // 触发更新
   }
 </script>
 
