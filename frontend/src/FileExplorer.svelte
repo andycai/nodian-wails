@@ -44,6 +44,13 @@
 
     async function refreshFiles() {
         files = await ListMarkdownFiles(currentDirectory);
+        // 确保所有文件夹都以 '/' 结尾
+        files = files.map((file) => {
+            if (isFolder(file) && !file.endsWith("/")) {
+                return file + "/";
+            }
+            return file;
+        });
         sortFiles();
 
         // 保留展开状态
@@ -62,11 +69,21 @@
 
         // 构建文件树
         files.forEach((file) => {
-            const parts = file.split("/").filter(Boolean);
+            const parts = file.split("/"); //.filter(Boolean);
+            // const parts = file.split("/").filter(Boolean);
+            // console.log("parts", file, parts);
             let currentPath = "";
             for (let i = 0; i < parts.length; i++) {
                 currentPath += (currentPath ? "/" : "") + parts[i];
+                // 路径中最后一个元素
                 if (i === parts.length - 1) {
+                    // 文件夹
+                    if (parts[i] === "") {
+                        //
+                    } else {
+                        //
+                    }
+
                     const parentPath = currentPath.substring(
                         0,
                         currentPath.lastIndexOf("/"),
@@ -74,7 +91,26 @@
                     if (!fileTree[parentPath]) {
                         fileTree[parentPath] = [];
                     }
-                    fileTree[parentPath].push(currentPath);
+                    // console.log(
+                    //     "currentPath",
+                    //     parentPath,
+                    //     currentPath,
+                    //     parts[i],
+                    // );
+                    // fileTree[parentPath].push(currentPath);
+                    if (parts[i] !== "") {
+                        fileTree[parentPath].push(currentPath);
+                    } else {
+                        const parentParts = parentPath
+                            .split("/")
+                            .filter(Boolean);
+
+                        if (parentParts.length === 1) {
+                            fileTree[""].push(parentPath);
+                        } else {
+                            fileTree[parentParts[0]].push(parentPath);
+                        }
+                    }
                 } else {
                     if (!fileTree[currentPath]) {
                         fileTree[currentPath] = [];
@@ -83,11 +119,20 @@
             }
         });
 
+        console.log("File tree:", fileTree);
         // 递归排序和添加文件
         function addSortedFiles(path: string) {
             const items = fileTree[path] || [];
-            const folders = items.filter((item) => fileTree[item]);
-            const files = items.filter((item) => !fileTree[item]);
+            // const folders = items.filter(
+            //     (item) => fileTree[item] !== undefined,
+            // );
+            const folders = items.filter(
+                (item) => !(fileTree[item] === undefined),
+            );
+            const files = items.filter((item) => fileTree[item] === undefined);
+            // console.log("items:", path, items);
+            console.log("folders:", path, folders);
+            // console.log("files:", path, files);
 
             // 文件夹按字母顺序排序
             folders.sort((a, b) => a.localeCompare(b));
@@ -156,7 +201,7 @@
                 cancelCreating();
             }
         } else if (event.key === "F2" && selectedItem) {
-            startRenaming(selectedItem);
+            // startRenaming(selectedItem);
         }
     }
 
@@ -213,7 +258,7 @@
 
     function selectItem(item: string) {
         selectedItem = item;
-        if (item.endsWith("/")) {
+        if (isFolder(item)) {
             dispatch("selectFolder", item);
         } else {
             dispatch("selectFile", item);
@@ -221,14 +266,10 @@
     }
 
     function startCreatingItem(isFile: boolean) {
-        if (selectedItem && selectedItem.endsWith("/")) {
+        if (selectedItem && isFolder(selectedItem)) {
             creatingPath = selectedItem;
         } else {
-            if (!selectedItem) {
-                creatingPath = currentDirectory + "/";
-            } else {
-                creatingPath = "";
-            }
+            creatingPath = currentDirectory + "/";
         }
         isCreatingFile = isFile;
         isCreatingFolder = !isFile;
@@ -239,7 +280,7 @@
         if (newItemName) {
             let fullPath;
             if (creatingPath) {
-                fullPath = `${creatingPath}${creatingPath.endsWith("/") ? "" : "/"}${newItemName}`;
+                fullPath = `${creatingPath}${isFolder(creatingPath) ? "" : "/"}${newItemName}`;
             } else {
                 fullPath = `${currentDirectory}/${newItemName}`;
             }
@@ -315,6 +356,13 @@
     function getFilePath(file: string): string {
         const parts = file.split("/").filter(Boolean);
         return parts.slice(0, -1).join("/");
+    }
+
+    function isFolder(file: string): boolean {
+        // return !file.endsWith(".mk");
+        return (
+            file.endsWith("/") || files.some((f) => f.startsWith(file + "/"))
+        );
     }
 </script>
 
@@ -435,14 +483,14 @@
                             <button
                                 on:click={() => {
                                     selectItem(file);
-                                    if (file.endsWith("/")) toggleFolder(file);
+                                    if (isFolder(file)) toggleFolder(file);
                                 }}
                                 class="flex-grow text-left p-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center text-gray-900 dark:text-gray-100 {selectedItem ===
                                 file
                                     ? 'bg-gray-200 dark:bg-gray-700'
                                     : ''}"
                             >
-                                {#if file.endsWith("/")}
+                                {#if isFolder(file)}
                                     <svg
                                         class="w-4 h-4 mr-2 text-gray-900 dark:text-gray-100 flex-shrink-0"
                                         fill="none"
@@ -478,7 +526,7 @@
                                 <span class="truncate">
                                     {truncateName(
                                         getFileName(file),
-                                        file.endsWith("/") ? 8 : 12,
+                                        isFolder(file) ? 8 : 12,
                                     )}
                                 </span>
                             </button>
