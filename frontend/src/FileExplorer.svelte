@@ -37,6 +37,8 @@
     let itemToDelete: string | null = null;
     let confirmMessage = "";
 
+    let creatingItemPath: string | null = null;
+
     onMount(async () => {
         currentDirectory = await GetCurrentDirectory();
         await refreshFiles();
@@ -103,7 +105,6 @@
             }
         });
 
-        console.log("File tree:", fileTree);
         // 递归排序和添加文件
         function addSortedFiles(path: string) {
             const items = fileTree[path] || [];
@@ -216,6 +217,7 @@
         } else {
             expandedFolders.add(folder);
         }
+        creatingPath = folder;
         expandedFolders = new Set(expandedFolders); // 触发更新
         await refreshFiles();
     }
@@ -246,10 +248,11 @@
     // 准备创建文件，等待输入文件名
     function startCreatingItem(isFile: boolean) {
         if (selectedItem && isFolder(selectedItem)) {
-            creatingPath = selectedItem;
+            creatingItemPath = selectedItem;
         } else {
-            creatingPath = currentDirectory + "/";
+            creatingItemPath = currentDirectory + "/";
         }
+        console.log("Creating item path:", creatingItemPath);
         isCreatingFile = isFile;
         isCreatingFolder = !isFile;
         newItemName = "";
@@ -264,7 +267,12 @@
                 fullPath = `${currentDirectory}/${newItemName}`;
             }
 
-            console.log("Creating item:", fullPath, currentDirectory);
+            console.log(
+                "Creating item:",
+                creatingPath,
+                fullPath,
+                currentDirectory,
+            );
             // 检查并创建根目录
             await CreateRootFolder(currentDirectory);
 
@@ -342,6 +350,20 @@
         return (
             file.endsWith("/") || files.some((f) => f.startsWith(file + "/"))
         );
+    }
+
+    function isNextToSelected(file: string): boolean {
+        if (!creatingItemPath) return false;
+        const creatingParts = creatingItemPath.split("/").filter(Boolean);
+        const fileParts = file.split("/").filter(Boolean);
+
+        if (creatingParts.length !== fileParts.length) return false;
+
+        for (let i = 0; i < creatingParts.length - 1; i++) {
+            if (creatingParts[i] !== fileParts[i]) return false;
+        }
+
+        return true;
     }
 </script>
 
@@ -557,9 +579,20 @@
                     {/if}
                 </li>
             {/if}
+            {#if (isCreatingFile || isCreatingFolder) && isNextToSelected(file) && creatingItemPath === file}
+                <li style="padding-left: {(getIndent(file) + 1) * 16}px;">
+                    <input
+                        type="text"
+                        bind:value={newItemName}
+                        on:keydown={handleKeydown}
+                        class="w-full p-1 text-sm border rounded dark:bg-gray-700 dark:text-white"
+                        autofocus
+                    />
+                </li>
+            {/if}
         {/each}
-        {#if (isCreatingFile || isCreatingFolder) && creatingPath}
-            <li style="padding-left: {(getIndent(creatingPath) + 1) * 16}px;">
+        {#if (isCreatingFile || isCreatingFolder) && (!selectedItem || !isFolder(selectedItem)) && creatingItemPath === currentDirectory + "/"}
+            <li style="padding-left: 16px;">
                 <input
                     type="text"
                     bind:value={newItemName}
