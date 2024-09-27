@@ -70,20 +70,11 @@
         // 构建文件树
         files.forEach((file) => {
             const parts = file.split("/"); //.filter(Boolean);
-            // const parts = file.split("/").filter(Boolean);
-            // console.log("parts", file, parts);
             let currentPath = "";
             for (let i = 0; i < parts.length; i++) {
                 currentPath += (currentPath ? "/" : "") + parts[i];
                 // 路径中最后一个元素
                 if (i === parts.length - 1) {
-                    // 文件夹
-                    if (parts[i] === "") {
-                        //
-                    } else {
-                        //
-                    }
-
                     const parentPath = currentPath.substring(
                         0,
                         currentPath.lastIndexOf("/"),
@@ -91,13 +82,6 @@
                     if (!fileTree[parentPath]) {
                         fileTree[parentPath] = [];
                     }
-                    // console.log(
-                    //     "currentPath",
-                    //     parentPath,
-                    //     currentPath,
-                    //     parts[i],
-                    // );
-                    // fileTree[parentPath].push(currentPath);
                     if (parts[i] !== "") {
                         fileTree[parentPath].push(currentPath);
                     } else {
@@ -123,16 +107,10 @@
         // 递归排序和添加文件
         function addSortedFiles(path: string) {
             const items = fileTree[path] || [];
-            // const folders = items.filter(
-            //     (item) => fileTree[item] !== undefined,
-            // );
             const folders = items.filter(
                 (item) => !(fileTree[item] === undefined),
             );
             const files = items.filter((item) => fileTree[item] === undefined);
-            // console.log("items:", path, items);
-            console.log("folders:", path, folders);
-            // console.log("files:", path, files);
 
             // 文件夹按字母顺序排序
             folders.sort((a, b) => a.localeCompare(b));
@@ -154,7 +132,7 @@
         addSortedFiles("");
 
         files = sortedFiles;
-        console.log("Sorted files:", files);
+        // console.log("Sorted files:", files);
     }
 
     async function selectDirectory() {
@@ -265,6 +243,7 @@
         }
     }
 
+    // 准备创建文件，等待输入文件名
     function startCreatingItem(isFile: boolean) {
         if (selectedItem && isFolder(selectedItem)) {
             creatingPath = selectedItem;
