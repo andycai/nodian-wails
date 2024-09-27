@@ -444,4 +444,34 @@
   :global(body) {
     @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100;
   }
+
+  /* 自定义滚动条样式 */
+  :global(*) {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
+  :global(*::-webkit-scrollbar) {
+    width: 8px;
+    height: 8px;
+  }
+
+  :global(*::-webkit-scrollbar-track) {
+    background: transparent;
+  }
+
+  :global(*::-webkit-scrollbar-thumb) {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  :global(*::-webkit-scrollbar-thumb:hover) {
+    background-color: rgba(156, 163, 175, 0.7);
+  }
+
+  :global(*::-webkit-scrollbar-corner) {
+    background: transparent;
+  }
 </style>

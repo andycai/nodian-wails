@@ -164,6 +164,7 @@
         isCreatingFolder = false;
         creatingPath = "";
         newItemName = "";
+        creatingItemPath = null;
     }
 
     function handleKeydown(event: KeyboardEvent) {
@@ -367,9 +368,7 @@
     }
 </script>
 
-<div
-    class="w-64 bg-gray-100 dark:bg-gray-800 p-4 overflow-y-auto custom-scrollbar"
->
+<div class="w-64 bg-gray-100 dark:bg-gray-800 p-4 overflow-y-auto">
     <div class="flex justify-between items-center mb-4">
         <h2
             class="text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer"
@@ -611,25 +610,3 @@
     on:confirm={handleDeleteConfirm}
     on:cancel={handleDeleteCancel}
 />
-
-<style>
-    /* 自定义滚动条样式 */
-    .custom-scrollbar {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: rgba(156, 163, 175, 0.5);
-        border-radius: 3px;
-    }
-</style>
